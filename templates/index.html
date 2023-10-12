@@ -6,25 +6,42 @@
 		<link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
 </head>
 <body>
-
 		<div id="title">
-				<h1>{{.Org}} Status Updates</h1>
+				<img src="/static/images/logo.svg" width=100px height=100px style="padding-right:20px;">
+				<h1> {{.Org}} Status</h1>
 		</div>
+		{{with .CurrentStatus}}
+		<div id="currentStatus" style="background-color:{{.Background}}">
+			<div id="currentStatusText">
+			{{.Text}}
+			</div>
+			<div id="currentStatusMetadata">
+				<div>
+				{{.TimeStamp}}
+				</div>
+				<div>
+				Posted by {{.SentBy}}
+				</div>
+			</div>
+		</div>
+		{{end}}
+
 		{{ with .StatusUpdates}}
 		<ul>
-		{{range .}}
-		<li style="background-color:{{.Background}}">
-				<div id="details">
-						{{.TimeStamp}}
+			{{range .}}
+			<!--Fixme: Not 100% sure I like this. Might want to go back to background color.-->
+			<li style="background-color: white; border-style: solid; border-color:{{.Background}}">
+				<div id="metadata">
+				{{.TimeStamp}}
 				</div>
 				<div id="updateText">
 				{{.Text}}
 				</div>
-				<div id="details">
+				<div id="metadata">
 				Posted by {{.SentBy}}
 				</div>
-		</li>
-		{{end}}
+			</li>
+			{{end}}
 		</ul>
 		{{end}}
 

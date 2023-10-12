@@ -134,7 +134,7 @@ func statusPage(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"StatusUpdates" : updates, "Org" : config.OrgName})
+	c.HTML(http.StatusOK, "index.html", gin.H{"CurrentStatus" : updates[0], "StatusUpdates" : updates[1:], "Org" : config.OrgName})
 }
 
 func main() {
