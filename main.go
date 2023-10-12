@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"fmt"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/gin-gonic/gin"
@@ -15,6 +17,7 @@ type Config struct {
 	SlackTeamID string
 	SlackAccessToken string
 	SlackStatusChannelID string
+	SlackBotID string
 }
 
 var config Config
@@ -36,12 +39,21 @@ func init() {
 	if err != nil {
 		log.Println(err)
 	}
+
+	api := slack.New(config.SlackAccessToken)
+	authTestResponse, err := api.AuthTest()
+	config.SlackBotID = authTestResponse.UserID
 }
+// TODO: Have a (global?) slack client
 
 func statusPage(c *gin.Context) {
 	var msgs []string
 	for _, message := range statusHistory {
-		msgs = append(msgs, message.Text)
+		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
+		if strings.Contains(message.Text, teamID) {
+			text := strings.Replace(message.Text, teamID, "", -1)
+			msgs = append(msgs, text)
+		}
 	}
 
 	c.HTML(http.StatusOK, "index.html", gin.H{"Messages" : msgs})

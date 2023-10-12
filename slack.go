@@ -118,23 +118,14 @@ func eventResp() func(c *gin.Context) {
 				am := &slackevents.AppMentionEvent{}
 				json.Unmarshal(*ce.InnerEvent, am)
 
-				_, err = slack.New(config.SlackAccessToken).PostEphemeral(
-					am.Channel,
-					am.User,
-					slack.MsgOptionTS(am.ThreadTimeStamp),
-					slack.MsgOptionText("Chom skz", false),
-				)
-				//err := handleMention(ce, am)
-				//if err != nil {
-				//	log.Println("Error responding to thread: ", err)
-				//	c.String(http.StatusInternalServerError, "Could not respond to thread: %s", err.Error())
-				//}
-			// case string(slackevents.AppUninstalled):
-			// 	log.Printf("App uninstalled from %s.\n", event.TeamID)
-			// 	err = deleteInstance(db, event.TeamID)
-			// 	if err != nil {
-			// 		c.String(http.StatusInternalServerError, "error handling app uninstallation")
-			// 	}
+				//_, err = slack.New(config.SlackAccessToken).PostEphemeral(
+				//	am.Channel,
+				//	am.User,
+				//	slack.MsgOptionTS(am.ThreadTimeStamp),
+				//	slack.MsgOptionText("Noted.", false),
+				//)
+
+				statusHistory, err = getStatusHistory()
 			default:
 				c.String(http.StatusBadRequest, "no handler for event of given type")
 			}
