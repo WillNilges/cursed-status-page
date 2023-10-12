@@ -6,6 +6,8 @@ import (
 	"os"
 	"fmt"
 	"strings"
+	"time"
+	"strconv"
 
 	"github.com/joho/godotenv"
 	"github.com/gin-gonic/gin"
@@ -21,9 +23,18 @@ type Config struct {
 	OrgName string
 }
 
+type StatusUpdate struct {
+	Text string
+	SentBy string
+	TimeStamp string
+	Background string
+}
+
 var config Config
 
 var statusHistory []slack.Message
+
+var slackAPI *slack.Client
 
 func init() {
 	// Load environment variables, one way or another
@@ -42,23 +53,73 @@ func init() {
 		log.Println(err)
 	}
 
-	api := slack.New(config.SlackAccessToken)
-	authTestResponse, err := api.AuthTest()
+	slackAPI = slack.New(config.SlackAccessToken)
+	authTestResponse, err := slackAPI.AuthTest()
 	config.SlackBotID = authTestResponse.UserID
 }
 // TODO: Have a (global?) slack client
 
+func slackTSToHumanTime(slackTimestamp string) (hrt string) {
+	// Convert the Slack timestamp to a Unix timestamp (float64)
+	slackUnixTimestamp, err := strconv.ParseFloat(strings.Split(slackTimestamp, ".")[0], 64)
+	if err != nil {
+		fmt.Println("Error parsing Slack timestamp:", err)
+		return
+	}
+
+	// Create a time.Time object from the Unix timestamp (assuming UTC time zone)
+	slackTime := time.Unix(int64(slackUnixTimestamp), 0)
+
+	// Convert to a specific time zone (e.g., "America/New_York")
+	location, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		fmt.Println("Error loading location:", err)
+		return
+	}
+
+	slackTimeInLocation := slackTime.In(location)
+
+	// Format the time as a human-readable string
+	humanReadableTimestamp := slackTimeInLocation.Format("2006-01-02 15:04:05 MST")
+
+	return humanReadableTimestamp
+}
+
 func statusPage(c *gin.Context) {
-	var msgs []string
+	var updates []StatusUpdate
 	for _, message := range statusHistory {
 		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		if strings.Contains(message.Text, teamID) {
-			text := strings.Replace(message.Text, teamID, "", -1)
-			msgs = append(msgs, text)
+			chom := slack.New(config.SlackAccessToken)
+			msgUser, err := chom.GetUserInfo(message.User)
+			if err != nil {
+				fmt.Println(err)
+				c.String(http.StatusInternalServerError, "error reading request body: %s", err.Error())
+			}
+			realName := msgUser.RealName
+			var update StatusUpdate
+			update.Text = strings.Replace(message.Text, teamID, "", -1)
+			update.SentBy = realName
+			update.TimeStamp = slackTSToHumanTime(message.Timestamp) 
+			update.Background = "gray"
+
+			for _, reaction := range message.Reactions {
+				if reaction.Name == "white_check_mark" {
+					update.Background = "green"
+					break
+				} else if reaction.Name == "confused" {
+					update.Background = "yellow"
+					break
+				} else if reaction.Name == "fire" {
+					update.Background = "red"
+				}
+			}   
+
+			updates = append(updates, update)
 		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"Messages" : msgs, "Org" : config.OrgName})
+	c.HTML(http.StatusOK, "index.html", gin.H{"StatusUpdates" : updates, "Org" : config.OrgName})
 }
 
 func main() {

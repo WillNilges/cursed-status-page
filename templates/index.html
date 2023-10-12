@@ -7,11 +7,23 @@
 </head>
 <body>
 
-		<h1>{{.Org}} Status Updates</h1>
-		{{ with .Messages}}
+		<div id="title">
+				<h1>{{.Org}} Status Updates</h1>
+		</div>
+		{{ with .StatusUpdates}}
 		<ul>
 		{{range .}}
-		<li>{{.}}</li>
+		<li style="background-color:{{.Background}}">
+				<div id="timestamp">
+						{{.TimeStamp}}
+				</div>
+				<div id="updateText">
+				{{.Text}}
+				</div>
+				<p>
+				Posted by {{.SentBy}}
+				</p>
+		</li>
 		{{end}}
 		</ul>
 		{{end}}

@@ -113,18 +113,14 @@ func eventResp() func(c *gin.Context) {
 				return
 			}
 			switch ie.Type {
+			case "reaction_removed":
+				fallthrough
+			case "reaction_added":
+				fallthrough
+			case "message":
+				fallthrough
 			case string(slackevents.AppMention):
-				log.Println("Got mentioned")
-				am := &slackevents.AppMentionEvent{}
-				json.Unmarshal(*ce.InnerEvent, am)
-
-				//_, err = slack.New(config.SlackAccessToken).PostEphemeral(
-				//	am.Channel,
-				//	am.User,
-				//	slack.MsgOptionTS(am.ThreadTimeStamp),
-				//	slack.MsgOptionText("Noted.", false),
-				//)
-
+				log.Printf("Got event: %s\n", ie.Type)
 				statusHistory, err = getStatusHistory()
 			default:
 				c.String(http.StatusBadRequest, "no handler for event of given type")
