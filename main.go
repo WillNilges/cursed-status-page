@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -27,6 +28,10 @@ func init() {
 
 	config.SlackTeamID = os.Getenv("CSP_SLACK_TEAMID")
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
+}
+
+func hello(c *gin.Context) {
+	c.HTML(http.StatusOK, "index.html", gin.H{})
 }
 
 func main() {
@@ -79,6 +84,8 @@ func main() {
 	interactionGroup := slackGroup.Group("/interaction")
 	interactionGroup.Use(signatureVerification)
 	interactionGroup.POST("/handle", interactionResp())
+
+	app.GET("/", hello)
 
 	_ = app.Run()
 }
