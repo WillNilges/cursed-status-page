@@ -1,0 +1,10 @@
+body {
+		font-family: Monospace
+}
+
+li {
+		list-style: none;
+		background-color: #DDD;
+		padding:10px;
+		margin:30px;
+}

@@ -1,23 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Page Title</title>
+		<title>{{.Org}} Status</title>
+		<link rel="stylesheet" type="text/css" href="/static/css/styles.css">
+		<link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
 </head>
 <body>
 
-<h1>This is a Heading</h1>
-<p>This is a paragraph.</p>
-
-
-
-<h1>Status Updates</h1>
-{{ with .Messages}}
-<ul>
-{{range .}}
-<li>{{.}}</li>
-{{end}}
-</ul>
-{{end}}
+		<h1>{{.Org}} Status Updates</h1>
+		{{ with .Messages}}
+		<ul>
+		{{range .}}
+		<li>{{.}}</li>
+		{{end}}
+		</ul>
+		{{end}}
 
 </body>
 </html>

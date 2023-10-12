@@ -18,6 +18,7 @@ type Config struct {
 	SlackAccessToken string
 	SlackStatusChannelID string
 	SlackBotID string
+	OrgName string
 }
 
 var config Config
@@ -34,6 +35,7 @@ func init() {
 	config.SlackTeamID = os.Getenv("CSP_SLACK_TEAMID")
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
 	config.SlackStatusChannelID = os.Getenv("CSP_SLACK_STATUS_CHANNEL")
+	config.OrgName = os.Getenv("CSP_ORG_NAME")
 
 	statusHistory, err = getStatusHistory()
 	if err != nil {
@@ -56,7 +58,7 @@ func statusPage(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"Messages" : msgs})
+	c.HTML(http.StatusOK, "index.html", gin.H{"Messages" : msgs, "Org" : config.OrgName})
 }
 
 func main() {
