@@ -187,3 +187,18 @@ func getThreadConversation(api *slack.Client, channelID string, threadTs string)
 	return conversation, nil
 }
 
+func getStatusHistory() (conversation []slack.Message, err error) {
+
+    params := slack.GetConversationHistoryParameters{
+        ChannelID: config.SlackStatusChannelID,
+        Oldest:    "0", // Retrieve messages from the beginning of time
+        Inclusive: true, // Include the oldest message
+    }
+
+	api := slack.New(config.SlackAccessToken)
+
+	var history* slack.GetConversationHistoryResponse
+    history, err = api.GetConversationHistory(&params)
+	return history.Messages, err
+}
+

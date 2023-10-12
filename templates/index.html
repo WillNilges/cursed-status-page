@@ -8,5 +8,16 @@
 <h1>This is a Heading</h1>
 <p>This is a paragraph.</p>
 
+
+
+<h1>Status Updates</h1>
+{{ with .Messages}}
+<ul>
+{{range .}}
+<li>{{.}}</li>
+{{end}}
+</ul>
+{{end}}
+
 </body>
 </html>

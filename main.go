@@ -6,18 +6,20 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-
 	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack"
 )
 
 
 type Config struct {
 	SlackTeamID string
 	SlackAccessToken string
+	SlackStatusChannelID string
 }
 
 var config Config
 
+var statusHistory []slack.Message
 
 func init() {
 	// Load environment variables, one way or another
@@ -28,10 +30,21 @@ func init() {
 
 	config.SlackTeamID = os.Getenv("CSP_SLACK_TEAMID")
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
+	config.SlackStatusChannelID = os.Getenv("CSP_SLACK_STATUS_CHANNEL")
+
+	statusHistory, err = getStatusHistory()
+	if err != nil {
+		log.Println(err)
+	}
 }
 
-func hello(c *gin.Context) {
-	c.HTML(http.StatusOK, "index.html", gin.H{})
+func statusPage(c *gin.Context) {
+	var msgs []string
+	for _, message := range statusHistory {
+		msgs = append(msgs, message.Text)
+	}
+
+	c.HTML(http.StatusOK, "index.html", gin.H{"Messages" : msgs})
 }
 
 func main() {
@@ -40,41 +53,6 @@ func main() {
 	app.Static("/static", "./static")
 
 	slackGroup := app.Group("/slack")
-
-	//installGroup := slackGroup.Group("/install")
-	//// First, the user goes to the form to submit mediawiki creds
-	//installGroup.GET("/", func(c *gin.Context) {
-	//	slackError := c.DefaultQuery("error", "")
-	//	if slackError != "" {
-	//		slackErrorDescription := c.Query("error_description")
-	//		c.HTML(http.StatusOK, "error.html", gin.H{
-	//			"SlackError": slackError,
-	//			"ErrorDesc":  slackErrorDescription,
-	//		})
-	//		return
-	//	}
-
-	//	code := c.DefaultQuery("code", "") // Retrieve the code parameter from the query string
-	//	c.HTML(http.StatusOK, "index.html", gin.H{
-	//		"Code": code, // Pass the code parameter to the template
-	//	})
-	//})
-
-	//// Then, the creds get submitted
-	//installGroup.POST("/submit", func(c *gin.Context) {
-	//	wikiUsername := c.PostForm("username")
-	//	wikiPassword := c.PostForm("password")
-	//	wikiUrl := c.PostForm("url")
-	//	wikiDomain := c.PostForm("domain")
-	//	code := c.PostForm("code")
-
-	//	c.Redirect(
-	//		http.StatusSeeOther,
-	//		"/slack/install/authorize?code="+code+"&mediaWikiUname="+wikiUsername+"&mediaWikiPword="+wikiPassword+"&mediaWikiURL="+wikiUrl+"&mediaWikiDomain="+wikiDomain,
-	//	)
-	//})
-	//// Then we use them while we set up the DB and do Slack things
-	//installGroup.Any("/authorize", installResp())
 
 	// Serve initial interactions with the bot
 	eventGroup := slackGroup.Group("/event")
@@ -85,7 +63,7 @@ func main() {
 	interactionGroup.Use(signatureVerification)
 	interactionGroup.POST("/handle", interactionResp())
 
-	app.GET("/", hello)
+	app.GET("/", statusPage)
 
 	_ = app.Run()
 }
