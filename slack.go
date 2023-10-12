@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -175,11 +176,12 @@ func getThreadConversation(api *slack.Client, channelID string, threadTs string)
 }
 
 func getStatusHistory() (conversation []slack.Message, err error) {
-
+	limit, _ := strconv.Atoi(config.SlackTruncation)
     params := slack.GetConversationHistoryParameters{
         ChannelID: config.SlackStatusChannelID,
         Oldest:    "0", // Retrieve messages from the beginning of time
         Inclusive: true, // Include the oldest message
+		Limit: limit, // Only get 100 messages
     }
 
 	api := slack.New(config.SlackAccessToken)

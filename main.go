@@ -16,11 +16,14 @@ import (
 
 
 type Config struct {
+	OrgName string
+
 	SlackTeamID string
 	SlackAccessToken string
 	SlackStatusChannelID string
 	SlackBotID string
-	OrgName string
+	SlackTruncation string
+
 	StatusNeutralColor string
 	StatusOKColor string
 	StatusOKEmoji string
@@ -44,16 +47,18 @@ var statusHistory []slack.Message
 var slackAPI *slack.Client
 
 func init() {
-	// Load environment variables, one way or another
+	// Load environment variablesFixmee way or another
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Couldn't load .env file")
 	}
 
+	config.OrgName = os.Getenv("CSP_ORG_NAME")
+
 	config.SlackTeamID = os.Getenv("CSP_SLACK_TEAMID")
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
 	config.SlackStatusChannelID = os.Getenv("CSP_SLACK_STATUS_CHANNEL")
-	config.OrgName = os.Getenv("CSP_ORG_NAME")
+	config.SlackTruncation = os.Getenv("CSP_SLACK_TRUNCATION")
 
 	config.StatusNeutralColor = os.Getenv("CSP_CARD_NEUTRAL_COLOR")
 	config.StatusOKColor = os.Getenv("CSP_CARD_OK_COLOR")
