@@ -14,15 +14,15 @@
 		<ul>
 		{{range .}}
 		<li style="background-color:{{.Background}}">
-				<div id="timestamp">
+				<div id="details">
 						{{.TimeStamp}}
 				</div>
 				<div id="updateText">
 				{{.Text}}
 				</div>
-				<p>
+				<div id="details">
 				Posted by {{.SentBy}}
-				</p>
+				</div>
 		</li>
 		{{end}}
 		</ul>

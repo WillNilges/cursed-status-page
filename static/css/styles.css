@@ -7,13 +7,19 @@ li {
 		background-color: #DDD;
 		padding:10px;
 		margin:30px;
+		border-radius:20px;
 }
 
 #updateText {
 		font-size: 36px;
+		padding:10px;
 }
 
 #title {
 		display: flex;
 		justify-content: center;
+}
+
+#details {
+	margin-left: 10px;
 }
