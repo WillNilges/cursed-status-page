@@ -1,0 +1,39 @@
+display_information:
+  name: Cursed Status Page
+  description: Control your status page from Slack
+  background_color: "#303462"
+features:
+  bot_user:
+    display_name: Cursed Status Page
+    always_online: true
+  shortcuts:
+    - name: Update Status Page
+      type: global
+      callback_id: csp_update_status_page
+      description: Manually trigger a status page upadte
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - chat:write
+      - commands
+      - groups:history
+      - groups:write
+      - users:read
+      - reactions:read
+settings:
+  event_subscriptions:
+    request_url: https://<your-url-here>/slack/event/handle
+    bot_events:
+      - app_mention
+      - message.groups
+      - reaction_added
+      - reaction_removed
+  interactivity:
+    is_enabled: true
+    request_url: https://<your-url-here>/slack/event/interaction
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+

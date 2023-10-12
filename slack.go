@@ -142,11 +142,9 @@ func interactionResp() func(c *gin.Context) {
 			return
 		}
 
-		slackClient := slack.New(config.SlackAccessToken)
-
 		if payload.Type == "message_action" {
 			if payload.CallbackID == CSPUpdateStatusPage {
-				_, err = slackClient.PostEphemeral(
+				_, err = slackAPI.PostEphemeral(
 					payload.Channel.ID,
 					payload.User.ID,
 					slack.MsgOptionTS(payload.Message.ThreadTimestamp),
@@ -184,10 +182,8 @@ func getStatusHistory() (conversation []slack.Message, err error) {
 		Limit: limit, // Only get 100 messages
     }
 
-	api := slack.New(config.SlackAccessToken)
-
 	var history* slack.GetConversationHistoryResponse
-    history, err = api.GetConversationHistory(&params)
+    history, err = slackAPI.GetConversationHistory(&params)
 	return history.Messages, err
 }
 

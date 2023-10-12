@@ -110,8 +110,7 @@ func statusPage(c *gin.Context) {
 	for _, message := range statusHistory {
 		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		if strings.Contains(message.Text, teamID) {
-			chom := slack.New(config.SlackAccessToken)
-			msgUser, err := chom.GetUserInfo(message.User)
+			msgUser, err := slackAPI.GetUserInfo(message.User)
 			if err != nil {
 				fmt.Println(err)
 				c.String(http.StatusInternalServerError, "error reading request body: %s", err.Error())
