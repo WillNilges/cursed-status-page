@@ -21,6 +21,13 @@ type Config struct {
 	SlackStatusChannelID string
 	SlackBotID string
 	OrgName string
+	StatusNeutralColor string
+	StatusOKColor string
+	StatusOKEmoji string
+	StatusWarnColor string
+	StatusWarnEmoji string
+	StatusErrorColor string
+	StatusErrorEmoji string
 }
 
 type StatusUpdate struct {
@@ -47,6 +54,14 @@ func init() {
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
 	config.SlackStatusChannelID = os.Getenv("CSP_SLACK_STATUS_CHANNEL")
 	config.OrgName = os.Getenv("CSP_ORG_NAME")
+
+	config.StatusNeutralColor = os.Getenv("CSP_CARD_NEUTRAL_COLOR")
+	config.StatusOKColor = os.Getenv("CSP_CARD_OK_COLOR")
+	config.StatusOKEmoji= os.Getenv("CSP_CARD_OK_EMOJI")
+	config.StatusWarnColor= os.Getenv("CSP_CARD_WARN_COLOR")
+	config.StatusWarnEmoji= os.Getenv("CSP_CARD_WARN_EMOJI")
+	config.StatusErrorColor= os.Getenv("CSP_CARD_ERROR_COLOR")
+	config.StatusErrorEmoji= os.Getenv("CSP_CARD_ERROR_EMOJI")
 
 	statusHistory, err = getStatusHistory()
 	if err != nil {
@@ -101,17 +116,17 @@ func statusPage(c *gin.Context) {
 			update.Text = strings.Replace(message.Text, teamID, "", -1)
 			update.SentBy = realName
 			update.TimeStamp = slackTSToHumanTime(message.Timestamp) 
-			update.Background = "gray"
+			update.Background = config.StatusNeutralColor 
 
 			for _, reaction := range message.Reactions {
-				if reaction.Name == "white_check_mark" {
-					update.Background = "green"
+				if reaction.Name == config.StatusOKEmoji {
+					update.Background = config.StatusOKColor
 					break
-				} else if reaction.Name == "confused" {
-					update.Background = "yellow"
+				} else if reaction.Name == config.StatusWarnEmoji {
+					update.Background = config.StatusWarnColor 
 					break
-				} else if reaction.Name == "fire" {
-					update.Background = "red"
+				} else if reaction.Name == config.StatusErrorEmoji {
+					update.Background = config.StatusErrorColor 
 				}
 			}   
 
