@@ -8,10 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
-	"time"
-
-	"github.com/antonholmquist/jason"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -31,7 +27,7 @@ const (
 )
 
 func signatureVerification(c *gin.Context) {
-	verifier, err := slack.NewSecretsVerifier(c.Request.Header, os.Getenv("SIGNATURE_SECRET"))
+	verifier, err := slack.NewSecretsVerifier(c.Request.Header, os.Getenv("CSP_SLACK_SIGNING_SECRET"))
 	if err != nil {
 		c.String(http.StatusBadRequest, "error initializing signature verifier: %s", err.Error())
 		return
@@ -68,8 +64,8 @@ func installResp() func(c *gin.Context) {
 			return
 		}
 		resp, err := slack.GetOAuthV2Response(http.DefaultClient,
-			os.Getenv("SLACK_CLIENT_ID"),
-			os.Getenv("SLACK_CLIENT_SECRET"),
+			os.Getenv("CSP_SLACK_CLIENT_ID"),
+			os.Getenv("CSP_SLACK_CLIENT_SECRET"),
 			code,
 			"")
 		if err != nil {
@@ -121,6 +117,13 @@ func eventResp() func(c *gin.Context) {
 				log.Println("Got mentioned")
 				am := &slackevents.AppMentionEvent{}
 				json.Unmarshal(*ce.InnerEvent, am)
+
+				_, err = slack.New(config.SlackAccessToken).PostEphemeral(
+					am.Channel,
+					am.User,
+					slack.MsgOptionTS(am.ThreadTimeStamp),
+					slack.MsgOptionText("Chom skz", false),
+				)
 				//err := handleMention(ce, am)
 				//if err != nil {
 				//	log.Println("Error responding to thread: ", err)
@@ -154,7 +157,15 @@ func interactionResp() func(c *gin.Context) {
 		slackClient := slack.New(config.SlackAccessToken)
 
 		if payload.Type == "message_action" {
-			if payload.CallbackID == CSPUpdateStatusPage {}
+			if payload.CallbackID == CSPUpdateStatusPage {
+				_, err = slackClient.PostEphemeral(
+					payload.Channel.ID,
+					payload.User.ID,
+					slack.MsgOptionTS(payload.Message.ThreadTimestamp),
+					slack.MsgOptionText("Chom skz", false),
+				)
+
+			}
 
 		}
 
