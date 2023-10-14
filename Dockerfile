@@ -12,4 +12,5 @@ WORKDIR /
 COPY --from=builder /build/cursed-status-page ./
 COPY static/. ./static/
 COPY templates/. ./templates/
+RUN apk add --no-cache tzdata
 ENTRYPOINT ["./cursed-status-page"]
