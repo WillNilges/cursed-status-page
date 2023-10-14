@@ -17,6 +17,23 @@ li {
 	border-radius:20px;
 }
 
+.shilling {
+	display: flex;
+	justify-content: center;
+	color: lightgray;
+}
+
+
+.shilling a:link {
+    color: gray;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+.shilling a:visited {
+    color: gray;
+    background-color: transparent;
+}
 
 #currentStatus {
 	padding:10px;

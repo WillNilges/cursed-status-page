@@ -17,6 +17,7 @@ import (
 
 type Config struct {
 	OrgName string
+	LogoURL string
 
 	SlackTeamID string
 	SlackAccessToken string
@@ -47,13 +48,14 @@ var statusHistory []slack.Message
 var slackAPI *slack.Client
 
 func init() {
-	// Load environment variablesFixmee way or another
+	// Load environment variables one way or another
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Couldn't load .env file")
 	}
 
 	config.OrgName = os.Getenv("CSP_ORG_NAME")
+	config.LogoURL = os.Getenv("CSP_LOGO_URL")
 
 	config.SlackTeamID = os.Getenv("CSP_SLACK_TEAMID")
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
@@ -68,16 +70,16 @@ func init() {
 	config.StatusErrorColor= os.Getenv("CSP_CARD_ERROR_COLOR")
 	config.StatusErrorEmoji= os.Getenv("CSP_CARD_ERROR_EMOJI")
 
+	slackAPI = slack.New(config.SlackAccessToken)
+
 	statusHistory, err = getStatusHistory()
 	if err != nil {
 		log.Println(err)
 	}
 
-	slackAPI = slack.New(config.SlackAccessToken)
 	authTestResponse, err := slackAPI.AuthTest()
 	config.SlackBotID = authTestResponse.UserID
 }
-// TODO: Have a (global?) slack client
 
 func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 	// Convert the Slack timestamp to a Unix timestamp (float64)
@@ -138,7 +140,7 @@ func statusPage(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"CurrentStatus" : updates[0], "StatusUpdates" : updates[1:], "Org" : config.OrgName})
+	c.HTML(http.StatusOK, "index.html", gin.H{"CurrentStatus" : updates[0], "StatusUpdates" : updates[1:], "Org" : config.OrgName, "Logo" : config.LogoURL})
 }
 
 func main() {

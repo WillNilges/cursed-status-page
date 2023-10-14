@@ -7,8 +7,8 @@
 </head>
 <body>
 		<div id="title">
-				<img src="/static/images/logo.svg" width=100px height=100px style="padding-right:20px;">
-				<h1> {{.Org}} Status</h1>
+			<img src="{{ .Logo }}" width=100px height=100px style="padding-right:20px;">
+			<h1> {{.Org}} Status</h1>
 		</div>
 		{{with .CurrentStatus}}
 		<div id="currentStatus" style="background-color:{{.Background}}">
@@ -44,6 +44,7 @@
 			{{end}}
 		</ul>
 		{{end}}
+		<div class="shilling"><p><a href="https://github.com/willnilges/cursed-status-page">This is a Cursed Status Page</a></p></div>
 
 </body>
 </html>
