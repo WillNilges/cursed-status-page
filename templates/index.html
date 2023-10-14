@@ -26,6 +26,7 @@
 		</div>
 		{{end}}
 
+		{{if .PinnedStatuses}}
 		{{with .PinnedStatuses}}
 		<ul>
 			{{range .}}
@@ -45,7 +46,9 @@
 			{{end}}
 		</ul>
 		{{end}}
+		{{end}}
 		
+		{{if .StatusUpdates}}
 		<h2 style="margin: 10px 20% 10px">Previous Statuses</h2>
 		<div id="oldUpdates">
 			{{with .StatusUpdates}}
@@ -64,6 +67,7 @@
 			</ul>
 			{{end}}
 		</div>
+		{{end}}
 
 		<div class="shilling"><p><a href="https://github.com/willnilges/cursed-status-page">This is a Cursed Status Page</a></p></div>
 
