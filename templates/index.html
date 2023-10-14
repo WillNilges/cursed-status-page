@@ -26,24 +26,45 @@
 		</div>
 		{{end}}
 
-		{{ with .StatusUpdates}}
+		{{with .PinnedStatuses}}
 		<ul>
 			{{range .}}
-			<!--Fixme: Not 100% sure I like this. Might want to go back to background color.-->
-			<li style="background-color: white; border-style: solid; border-color:{{.Background}}">
-				<div id="metadata">
+		<div id="pinnedStatus" style="border-color:{{.Background}}">
+			<div id="updateText">
+			{{.Text}}
+			</div>
+			<div id="currentStatusMetadata">
+				<div>
 				{{.TimeStamp}}
 				</div>
-				<div id="updateText">
-				{{.Text}}
-				</div>
-				<div id="metadata">
+				<div>
 				Posted by {{.SentBy}}
 				</div>
-			</li>
+			</div>
+		</div>
 			{{end}}
 		</ul>
 		{{end}}
+		
+		<h2 style="margin: 10px 20% 10px">Previous Statuses</h2>
+		<div id="oldUpdates">
+			{{with .StatusUpdates}}
+				<ul>
+				{{range .}}
+				<li id="oldUpdate">
+					<div id="oldMetadata">
+						<div>{{.TimeStamp}}</div><div>posted by {{.SentBy}}</div>
+					</div>
+					<div>
+						{{.Text}}
+					</div>
+				</li>
+				<!--<li id="oldUpdate"><div><div id="oldMetadata">{{.TimeStamp}}:</div> {{.Text}}</div> <div id="oldMetadata">(posted by {{.SentBy}})</div></li>-->
+				{{end}}
+			</ul>
+			{{end}}
+		</div>
+
 		<div class="shilling"><p><a href="https://github.com/willnilges/cursed-status-page">This is a Cursed Status Page</a></p></div>
 
 </body>
