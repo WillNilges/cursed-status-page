@@ -6,6 +6,8 @@ A simple status page webserver that you control using Slack
 </p>
 
 ![Static Badge](https://img.shields.io/badge/i_should_stop-writing_go-blue)
+[![Docker](https://img.shields.io/badge/docker-hub-cyan)](https://hub.docker.com/repository/docker/willnilges/cursed-status-page/general)
+
 
 ## Usage
 Ping `@Cursed Status Page` in the `#status-page` channel with your status update, and then react to it with 🟢, 🟡, or 🔴 to turn it green, yellow, or red respectively.
