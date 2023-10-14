@@ -34,6 +34,8 @@ type Config struct {
 
 	PinEmoji           string
 	PinLimit           int
+
+	CurrentEmoji       string
 }
 
 type StatusUpdate struct {
@@ -75,6 +77,8 @@ func init() {
 	config.PinEmoji = os.Getenv("CSP_PIN_EMOJI")
 	config.PinLimit, _ = strconv.Atoi(os.Getenv("CSP_PIN_LIMIT"))
 
+	config.CurrentEmoji = os.Getenv("CSP_CURRENT_EMOJI")
+
 	slackAPI = slack.New(config.SlackAccessToken)
 
 	statusHistory, err = getStatusHistory()
@@ -115,6 +119,9 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 func statusPage(c *gin.Context) {
 	var updates []StatusUpdate
 	var pinnedUpdates []StatusUpdate
+
+	hasCurrentStatus := false
+	var currentStatus StatusUpdate
 	for _, message := range statusHistory {
 		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		if strings.Contains(message.Text, teamID) {
@@ -130,11 +137,13 @@ func statusPage(c *gin.Context) {
 			update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 			update.Background = config.StatusNeutralColor
 
+			willBeCurrentStatus := false
 			shouldPin := false
 			for _, reaction := range message.Reactions {
-
 				// If we find a pin at all, then use it
-				if reaction.Name == config.PinEmoji {
+				if reaction.Name == config.CurrentEmoji && hasCurrentStatus == false {
+					willBeCurrentStatus = true
+				} else if reaction.Name == config.PinEmoji {
 					shouldPin = true
 				}
 
@@ -149,14 +158,23 @@ func statusPage(c *gin.Context) {
 					}
 				}
 			}
-			updates = append(updates, update)
-			if shouldPin && len(pinnedUpdates) < config.PinLimit {
+			if willBeCurrentStatus {
+				currentStatus = update
+				hasCurrentStatus = true
+			} else if shouldPin && len(pinnedUpdates) < config.PinLimit {
 				pinnedUpdates = append(pinnedUpdates, update)
+			} else {
+				updates = append(updates, update)
 			}
 		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"PinnedStatuses" : pinnedUpdates, "CurrentStatus": updates[0], "StatusUpdates": updates[1:], "Org": config.OrgName, "Logo": config.LogoURL})
+	if !hasCurrentStatus {
+		currentStatus = updates[0]
+		updates = updates[1:]
+	}
+
+	c.HTML(http.StatusOK, "index.html", gin.H{"PinnedStatuses" : pinnedUpdates, "CurrentStatus": currentStatus, "StatusUpdates": updates, "Org": config.OrgName, "Logo": config.LogoURL})
 }
 
 func health(c *gin.Context) {
