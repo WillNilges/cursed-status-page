@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 type Config struct {
 	OrgName string
 	LogoURL string
+	FaviconURL string
 
 	SlackTeamID          string
 	SlackAccessToken     string
@@ -36,6 +38,10 @@ type Config struct {
 	PinLimit           int
 
 	CurrentEmoji       string
+
+	NominalMessage	   string
+	NominalSentBy      string
+	HelpMessage		   string
 }
 
 type StatusUpdate struct {
@@ -60,6 +66,7 @@ func init() {
 
 	config.OrgName = os.Getenv("CSP_ORG_NAME")
 	config.LogoURL = os.Getenv("CSP_LOGO_URL")
+	config.FaviconURL = os.Getenv("CSP_FAVICON_URL")
 
 	config.SlackTeamID = os.Getenv("CSP_SLACK_TEAMID")
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
@@ -78,6 +85,10 @@ func init() {
 	config.PinLimit, _ = strconv.Atoi(os.Getenv("CSP_PIN_LIMIT"))
 
 	config.CurrentEmoji = os.Getenv("CSP_CURRENT_EMOJI")
+
+	config.NominalMessage = os.Getenv("CSP_NOMINAL_MESSAGE")
+	config.NominalSentBy = os.Getenv("CSP_NOMINAL_SENT_BY")
+	config.HelpMessage = os.Getenv("CSP_HELP_LINK")
 
 	slackAPI = slack.New(config.SlackAccessToken)
 
@@ -170,11 +181,27 @@ func statusPage(c *gin.Context) {
 	}
 
 	if !hasCurrentStatus {
-		currentStatus = updates[0]
-		updates = updates[1:]
+		currentStatus = StatusUpdate{
+			Text: config.NominalMessage,
+			SentBy: config.NominalSentBy,
+			TimeStamp: "Now",
+			Background: config.StatusOKColor,
+		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"PinnedStatuses" : pinnedUpdates, "CurrentStatus": currentStatus, "StatusUpdates": updates, "Org": config.OrgName, "Logo": config.LogoURL})
+	c.HTML(
+		http.StatusOK,
+		"index.html",
+		gin.H{
+			"HelpMessage" : template.HTML(config.HelpMessage),
+			"PinnedStatuses" : pinnedUpdates,
+			"CurrentStatus": currentStatus, 
+			"StatusUpdates": updates,
+			"Org": config.OrgName,
+			"Logo": config.LogoURL,
+			"Favicon": config.FaviconURL,
+		},
+	)
 }
 
 func health(c *gin.Context) {

@@ -3,11 +3,11 @@
 <head>
 		<title>{{.Org}} Status</title>
 		<link rel="stylesheet" type="text/css" href="/static/css/styles.css">
-		<link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+		<link rel="icon" type="image/x-icon" href="{{.Favicon}}">
 </head>
 <body>
 		<div id="title">
-			<img src="{{ .Logo }}" width=100px height=100px style="padding-right:20px;">
+			<img src="{{.Logo}}" width=100px height=100px style="padding-right:20px;">
 			<h1> {{.Org}} Status</h1>
 		</div>
 		{{with .CurrentStatus}}
@@ -25,6 +25,10 @@
 			</div>
 		</div>
 		{{end}}
+
+		<div style="display: flex; justify-content: center">
+		{{.HelpMessage}}
+		</div>
 
 		{{if .PinnedStatuses}}
 		{{with .PinnedStatuses}}
