@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"github.com/gin-gonic/gin"
-	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/slackevents"
 )
 
 type GrabCallbackIDs string
@@ -132,7 +132,6 @@ func eventResp() func(c *gin.Context) {
 	}
 }
 
-
 func interactionResp() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var payload slack.InteractionCallback
@@ -159,7 +158,6 @@ func interactionResp() func(c *gin.Context) {
 	}
 }
 
-
 func getThreadConversation(api *slack.Client, channelID string, threadTs string) (conversation []slack.Message, err error) {
 	// Get the conversation history
 	params := slack.GetConversationRepliesParameters{
@@ -174,16 +172,16 @@ func getThreadConversation(api *slack.Client, channelID string, threadTs string)
 }
 
 func getStatusHistory() (conversation []slack.Message, err error) {
+	log.Println("Fetching Status Updates...")
 	limit, _ := strconv.Atoi(config.SlackTruncation)
-    params := slack.GetConversationHistoryParameters{
-        ChannelID: config.SlackStatusChannelID,
-        Oldest:    "0", // Retrieve messages from the beginning of time
-        Inclusive: true, // Include the oldest message
-		Limit: limit, // Only get 100 messages
-    }
+	params := slack.GetConversationHistoryParameters{
+		ChannelID: config.SlackStatusChannelID,
+		Oldest:    "0",   // Retrieve messages from the beginning of time
+		Inclusive: true,  // Include the oldest message
+		Limit:     limit, // Only get 100 messages
+	}
 
-	var history* slack.GetConversationHistoryResponse
-    history, err = slackAPI.GetConversationHistory(&params)
+	var history *slack.GetConversationHistoryResponse
+	history, err = slackAPI.GetConversationHistory(&params)
 	return history.Messages, err
 }
-

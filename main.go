@@ -1,43 +1,42 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"fmt"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
-	"github.com/joho/godotenv"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 )
-
 
 type Config struct {
 	OrgName string
 	LogoURL string
 
-	SlackTeamID string
-	SlackAccessToken string
+	SlackTeamID          string
+	SlackAccessToken     string
 	SlackStatusChannelID string
-	SlackBotID string
-	SlackTruncation string
+	SlackBotID           string
+	SlackTruncation      string
 
 	StatusNeutralColor string
-	StatusOKColor string
-	StatusOKEmoji string
-	StatusWarnColor string
-	StatusWarnEmoji string
-	StatusErrorColor string
-	StatusErrorEmoji string
+	StatusOKColor      string
+	StatusOKEmoji      string
+	StatusWarnColor    string
+	StatusWarnEmoji    string
+	StatusErrorColor   string
+	StatusErrorEmoji   string
 }
 
 type StatusUpdate struct {
-	Text string
-	SentBy string
-	TimeStamp string
+	Text       string
+	SentBy     string
+	TimeStamp  string
 	Background string
 }
 
@@ -64,11 +63,11 @@ func init() {
 
 	config.StatusNeutralColor = os.Getenv("CSP_CARD_NEUTRAL_COLOR")
 	config.StatusOKColor = os.Getenv("CSP_CARD_OK_COLOR")
-	config.StatusOKEmoji= os.Getenv("CSP_CARD_OK_EMOJI")
-	config.StatusWarnColor= os.Getenv("CSP_CARD_WARN_COLOR")
-	config.StatusWarnEmoji= os.Getenv("CSP_CARD_WARN_EMOJI")
-	config.StatusErrorColor= os.Getenv("CSP_CARD_ERROR_COLOR")
-	config.StatusErrorEmoji= os.Getenv("CSP_CARD_ERROR_EMOJI")
+	config.StatusOKEmoji = os.Getenv("CSP_CARD_OK_EMOJI")
+	config.StatusWarnColor = os.Getenv("CSP_CARD_WARN_COLOR")
+	config.StatusWarnEmoji = os.Getenv("CSP_CARD_WARN_EMOJI")
+	config.StatusErrorColor = os.Getenv("CSP_CARD_ERROR_COLOR")
+	config.StatusErrorEmoji = os.Getenv("CSP_CARD_ERROR_EMOJI")
 
 	slackAPI = slack.New(config.SlackAccessToken)
 
@@ -121,26 +120,30 @@ func statusPage(c *gin.Context) {
 			var update StatusUpdate
 			update.Text = strings.Replace(message.Text, teamID, "", -1)
 			update.SentBy = realName
-			update.TimeStamp = slackTSToHumanTime(message.Timestamp) 
-			update.Background = config.StatusNeutralColor 
+			update.TimeStamp = slackTSToHumanTime(message.Timestamp)
+			update.Background = config.StatusNeutralColor
 
 			for _, reaction := range message.Reactions {
 				if reaction.Name == config.StatusOKEmoji {
 					update.Background = config.StatusOKColor
 					break
 				} else if reaction.Name == config.StatusWarnEmoji {
-					update.Background = config.StatusWarnColor 
+					update.Background = config.StatusWarnColor
 					break
 				} else if reaction.Name == config.StatusErrorEmoji {
-					update.Background = config.StatusErrorColor 
+					update.Background = config.StatusErrorColor
 				}
-			}   
+			}
 
 			updates = append(updates, update)
 		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"CurrentStatus" : updates[0], "StatusUpdates" : updates[1:], "Org" : config.OrgName, "Logo" : config.LogoURL})
+	c.HTML(http.StatusOK, "index.html", gin.H{"CurrentStatus": updates[0], "StatusUpdates": updates[1:], "Org": config.OrgName, "Logo": config.LogoURL})
+}
+
+func health(c *gin.Context) {
+	c.JSON(http.StatusOK, "cursed-status-page")
 }
 
 func main() {
@@ -160,6 +163,7 @@ func main() {
 	interactionGroup.POST("/handle", interactionResp())
 
 	app.GET("/", statusPage)
+	app.GET("/health", health)
 
 	_ = app.Run()
 }
