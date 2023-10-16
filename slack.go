@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/slackevents"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 type GrabCallbackIDs string
@@ -90,6 +92,7 @@ func eventResp() func(c *gin.Context) {
 			c.String(http.StatusInternalServerError, "error reading slack event payload: %s", err.Error())
 			return
 		}
+		log.Printf("%s\n", event.Type)
 		switch event.Type {
 		case slackevents.URLVerification:
 			ve, ok := event.Data.(*slackevents.EventsAPIURLVerificationEvent)
@@ -118,7 +121,11 @@ func eventResp() func(c *gin.Context) {
 				shouldUpdate = true
 			case *slackevents.ReactionAddedEvent:
 				reaction := ev.Reaction
-				if ev.User == config.SlackBotID || !isRelevantReaction(reaction, true, true) {
+				botMentioned, err := isBotMentioned(ev.Item.Timestamp)
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+				}
+				if ev.User == config.SlackBotID || !isRelevantReaction(reaction, true, true) || !botMentioned {
 					break
 				}
 				// If necessary, remove a conflicting reaction
@@ -145,11 +152,13 @@ func eventResp() func(c *gin.Context) {
 					Channel:   config.SlackStatusChannelID,
 					Timestamp: ev.Item.Timestamp,
 				})
-
-
 				shouldUpdate = true
 			case *slackevents.MessageEvent:
-				shouldUpdate = true	
+				// If a message mentioning us gets added or deleted, then
+				// do something
+				if strings.Contains(ev.Text, config.SlackBotID) {
+					shouldUpdate = true	
+				}
 			case *slackevents.AppMentionEvent:
 				shouldUpdate = true
 			default:
@@ -157,7 +166,7 @@ func eventResp() func(c *gin.Context) {
 			}
 			// Update our history
 			if shouldUpdate {
-				statusHistory, err = getStatusHistory()
+				statusHistory, err = getChannelHistory()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
@@ -179,15 +188,11 @@ func interactionResp() func(c *gin.Context) {
 
 		if payload.Type == "message_action" {
 			if payload.CallbackID == CSPUpdateStatusPage {
-				_, err = slackAPI.PostEphemeral(
-					payload.Channel.ID,
-					payload.User.ID,
-					slack.MsgOptionTS(payload.Message.ThreadTimestamp),
-					slack.MsgOptionText("Chom skz", false),
-				)
-
+				statusHistory, err = getChannelHistory()
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+				}
 			}
-
 		}
 
 		// TODO: Else get angery
@@ -207,8 +212,8 @@ func getThreadConversation(api *slack.Client, channelID string, threadTs string)
 	return conversation, nil
 }
 
-func getStatusHistory() (conversation []slack.Message, err error) {
-	log.Println("Fetching Status Updates...")
+func getChannelHistory() (conversation []slack.Message, err error) {
+	log.Println("Fetching channel history...")
 	limit, _ := strconv.Atoi(config.SlackTruncation)
 	params := slack.GetConversationHistoryParameters{
 		ChannelID: config.SlackStatusChannelID,
@@ -220,6 +225,23 @@ func getStatusHistory() (conversation []slack.Message, err error) {
 	var history *slack.GetConversationHistoryResponse
 	history, err = slackAPI.GetConversationHistory(&params)
 	return history.Messages, err
+}
+
+func isBotMentioned(timestamp string) (isMentioned bool, err error) {
+    history, err := slackAPI.GetConversationHistory(
+        &slack.GetConversationHistoryParameters{
+            ChannelID:     config.SlackStatusChannelID,
+            Inclusive:     true,
+            Latest:        timestamp,
+            Oldest:        timestamp,
+            Limit:         1,
+        },
+    )
+	if err != nil {
+		return false, err
+	}
+
+	return strings.Contains(history.Messages[0].Text, config.SlackBotID), nil
 }
 
 func clearReactions(timestamp string, focusReactions []string) error {
