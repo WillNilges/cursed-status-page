@@ -16,8 +16,8 @@ import (
 )
 
 type Config struct {
-	OrgName string
-	LogoURL string
+	OrgName    string
+	LogoURL    string
 	FaviconURL string
 
 	SlackTeamID          string
@@ -34,14 +34,14 @@ type Config struct {
 	StatusErrorColor   string
 	StatusErrorEmoji   string
 
-	PinEmoji           string
-	PinLimit           int
+	PinEmoji string
+	PinLimit int
 
-	CurrentEmoji       string
+	CurrentEmoji string
 
-	NominalMessage	   string
-	NominalSentBy      string
-	HelpMessage		   string
+	NominalMessage string
+	NominalSentBy  string
+	HelpMessage    string
 }
 
 type StatusUpdate struct {
@@ -199,9 +199,9 @@ func statusPage(c *gin.Context) {
 
 	if !hasCurrentStatus {
 		currentStatus = StatusUpdate{
-			Text: config.NominalMessage,
-			SentBy: config.NominalSentBy,
-			TimeStamp: "Now",
+			Text:       config.NominalMessage,
+			SentBy:     config.NominalSentBy,
+			TimeStamp:  "Now",
 			Background: config.StatusOKColor,
 		}
 	}
@@ -210,13 +210,13 @@ func statusPage(c *gin.Context) {
 		http.StatusOK,
 		"index.html",
 		gin.H{
-			"HelpMessage" : template.HTML(config.HelpMessage),
-			"PinnedStatuses" : pinnedUpdates,
-			"CurrentStatus": currentStatus, 
-			"StatusUpdates": updates,
-			"Org": config.OrgName,
-			"Logo": config.LogoURL,
-			"Favicon": config.FaviconURL,
+			"HelpMessage":    template.HTML(config.HelpMessage),
+			"PinnedStatuses": pinnedUpdates,
+			"CurrentStatus":  currentStatus,
+			"StatusUpdates":  updates,
+			"Org":            config.OrgName,
+			"Logo":           config.LogoURL,
+			"Favicon":        config.FaviconURL,
 		},
 	)
 }

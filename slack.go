@@ -134,7 +134,7 @@ func eventResp() func(c *gin.Context) {
 						ev.Item.Timestamp,
 						[]string{
 							config.StatusOKEmoji,
-							config.StatusWarnEmoji, 
+							config.StatusWarnEmoji,
 							config.StatusErrorEmoji,
 						},
 					)
@@ -157,7 +157,7 @@ func eventResp() func(c *gin.Context) {
 				// If a message mentioning us gets added or deleted, then
 				// do something
 				if strings.Contains(ev.Text, config.SlackBotID) {
-					shouldUpdate = true	
+					shouldUpdate = true
 				}
 			case *slackevents.AppMentionEvent:
 				shouldUpdate = true
@@ -228,15 +228,15 @@ func getChannelHistory() (conversation []slack.Message, err error) {
 }
 
 func isBotMentioned(timestamp string) (isMentioned bool, err error) {
-    history, err := slackAPI.GetConversationHistory(
-        &slack.GetConversationHistoryParameters{
-            ChannelID:     config.SlackStatusChannelID,
-            Inclusive:     true,
-            Latest:        timestamp,
-            Oldest:        timestamp,
-            Limit:         1,
-        },
-    )
+	history, err := slackAPI.GetConversationHistory(
+		&slack.GetConversationHistoryParameters{
+			ChannelID: config.SlackStatusChannelID,
+			Inclusive: true,
+			Latest:    timestamp,
+			Oldest:    timestamp,
+			Limit:     1,
+		},
+	)
 	if err != nil {
 		return false, err
 	}
@@ -276,7 +276,7 @@ func isRelevantReaction(reaction string, status bool, pin bool) bool {
 	switch reaction {
 	case config.StatusOKEmoji, config.StatusWarnEmoji, config.StatusErrorEmoji:
 		if status {
-			return true	
+			return true
 		}
 	case config.PinEmoji, config.CurrentEmoji:
 		if pin {
@@ -285,4 +285,3 @@ func isRelevantReaction(reaction string, status bool, pin bool) bool {
 	}
 	return false
 }
-
