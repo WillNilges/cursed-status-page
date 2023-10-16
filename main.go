@@ -150,6 +150,7 @@ func statusPage(c *gin.Context) {
 
 			willBeCurrentStatus := false
 			shouldPin := false
+			colorCount := 0
 			for _, reaction := range message.Reactions {
 				// If we find a pin at all, then use it
 				if reaction.Name == config.CurrentEmoji && hasCurrentStatus == false {
@@ -158,8 +159,8 @@ func statusPage(c *gin.Context) {
 					shouldPin = true
 				}
 
-				// Use the first color we find
-				if update.Background == config.StatusNeutralColor {
+				// Use the last color we find, or the color with the most reactions.
+				if reaction.Count >= colorCount {
 					if reaction.Name == config.StatusOKEmoji {
 						update.Background = config.StatusOKColor
 					} else if reaction.Name == config.StatusWarnEmoji {
@@ -167,6 +168,7 @@ func statusPage(c *gin.Context) {
 					} else if reaction.Name == config.StatusErrorEmoji {
 						update.Background = config.StatusErrorColor
 					}
+					colorCount = reaction.Count
 				}
 			}
 			if willBeCurrentStatus {
