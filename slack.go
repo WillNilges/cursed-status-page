@@ -103,26 +103,22 @@ func eventResp() func(c *gin.Context) {
 		case slackevents.AppRateLimited:
 			c.String(http.StatusOK, "ack")
 		case slackevents.CallbackEvent:
-			ce, ok := event.Data.(*slackevents.EventsAPICallbackEvent)
-			if !ok {
-				c.String(http.StatusBadRequest, "invalid callback event payload sent from slack")
-				return
-			}
-			ie := &slackevents.EventsAPIInnerEvent{}
-			if err = json.Unmarshal(*ce.InnerEvent, ie); err != nil {
-				c.String(http.StatusBadRequest, "invalid inner event payload sent from slack: %s", err.Error())
-				return
-			}
-			switch ie.Type {
-			case "reaction_removed":
-				fallthrough
-			case "reaction_added":
-				fallthrough
-			case "message":
-				fallthrough
-			case string(slackevents.AppMention):
-				log.Printf("Got event: %s\n", ie.Type)
+			innerEvent := event.InnerEvent
+			switch ev := innerEvent.Data.(type) {
+			case *slackevents.ReactionAddedEvent:
+				reaction := ev.Reaction
+				log.Println(reaction)
+				// Mirror the reaction on the message
+			case *slackevents.MessageEvent:
 				statusHistory, err = getStatusHistory()
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+				}
+			case *slackevents.AppMentionEvent:
+				statusHistory, err = getStatusHistory()
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+				}
 			default:
 				c.String(http.StatusBadRequest, "no handler for event of given type")
 			}
@@ -184,4 +180,48 @@ func getStatusHistory() (conversation []slack.Message, err error) {
 	var history *slack.GetConversationHistoryResponse
 	history, err = slackAPI.GetConversationHistory(&params)
 	return history.Messages, err
+}
+/*
+func removeAllReactions(timestamp string) error {
+	reactions, err := slackAPI.GetReactions(slack.ItemRef{
+		Channel: config.SlackStatusChannelID,
+		Timestamp: timestamp,
+	},
+	slack.GetReactionsParameters{
+		Full: false,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, reaction := range reactions {
+		log.Println("I bet this code isn't running")
+		if err := slackAPI.RemoveReaction(reaction.Name, slack.ItemRef{
+			Channel:   config.SlackStatusChannelID,
+			Timestamp: timestamp,
+		}); err != nil {
+			log.Printf("Error removing reaction %s: %v\n", reaction.Name, err)
+		}
+	}
+
+	return nil
+}*/
+
+func removeAllReactions(timestamp string) error {
+	ref := slack.ItemRef{
+		Channel:   config.SlackStatusChannelID,
+		Timestamp: timestamp,
+	}
+	reactions, err := slackAPI.GetReactions(ref, slack.NewGetReactionsParameters())
+	if err != nil {
+		return err
+	}
+	for _, itemReaction := range reactions {
+		log.Println(itemReaction)
+		err := slackAPI.RemoveReaction(itemReaction.Name, ref)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
