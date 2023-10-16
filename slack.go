@@ -104,23 +104,63 @@ func eventResp() func(c *gin.Context) {
 			c.String(http.StatusOK, "ack")
 		case slackevents.CallbackEvent:
 			innerEvent := event.InnerEvent
+			shouldUpdate := false
 			switch ev := innerEvent.Data.(type) {
+			case *slackevents.ReactionRemovedEvent:
+				if ev.User == config.SlackBotID {
+					break
+				}
+				reaction := ev.Reaction
+				slackAPI.RemoveReaction(reaction, slack.ItemRef{
+					Channel:   config.SlackStatusChannelID,
+					Timestamp: ev.Item.Timestamp,
+				})
+				shouldUpdate = true
 			case *slackevents.ReactionAddedEvent:
 				reaction := ev.Reaction
-				log.Println(reaction)
+				if ev.User == config.SlackBotID || !isRelevantReaction(reaction, true, true) {
+					break
+				}
+				// If necessary, remove a conflicting reaction
+				if isRelevantReaction(reaction, true, false) {
+					clearReactions(
+						ev.Item.Timestamp,
+						[]string{
+							config.StatusOKEmoji,
+							config.StatusWarnEmoji, 
+							config.StatusErrorEmoji,
+						},
+					)
+				} else if isRelevantReaction(reaction, false, true) {
+					clearReactions(
+						ev.Item.Timestamp,
+						[]string{
+							config.PinEmoji,
+							config.CurrentEmoji,
+						},
+					)
+				}
 				// Mirror the reaction on the message
+				slackAPI.AddReaction(reaction, slack.ItemRef{
+					Channel:   config.SlackStatusChannelID,
+					Timestamp: ev.Item.Timestamp,
+				})
+
+
+				shouldUpdate = true
 			case *slackevents.MessageEvent:
-				statusHistory, err = getStatusHistory()
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-				}
+				shouldUpdate = true	
 			case *slackevents.AppMentionEvent:
-				statusHistory, err = getStatusHistory()
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-				}
+				shouldUpdate = true
 			default:
 				c.String(http.StatusBadRequest, "no handler for event of given type")
+			}
+			// Update our history
+			if shouldUpdate {
+				statusHistory, err = getStatusHistory()
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+				}
 			}
 		default:
 			c.String(http.StatusBadRequest, "invalid event type sent from slack")
@@ -181,33 +221,8 @@ func getStatusHistory() (conversation []slack.Message, err error) {
 	history, err = slackAPI.GetConversationHistory(&params)
 	return history.Messages, err
 }
-/*
-func removeAllReactions(timestamp string) error {
-	reactions, err := slackAPI.GetReactions(slack.ItemRef{
-		Channel: config.SlackStatusChannelID,
-		Timestamp: timestamp,
-	},
-	slack.GetReactionsParameters{
-		Full: false,
-	})
-	if err != nil {
-		return err
-	}
 
-	for _, reaction := range reactions {
-		log.Println("I bet this code isn't running")
-		if err := slackAPI.RemoveReaction(reaction.Name, slack.ItemRef{
-			Channel:   config.SlackStatusChannelID,
-			Timestamp: timestamp,
-		}); err != nil {
-			log.Printf("Error removing reaction %s: %v\n", reaction.Name, err)
-		}
-	}
-
-	return nil
-}*/
-
-func removeAllReactions(timestamp string) error {
+func clearReactions(timestamp string, focusReactions []string) error {
 	ref := slack.ItemRef{
 		Channel:   config.SlackStatusChannelID,
 		Timestamp: timestamp,
@@ -216,12 +231,36 @@ func removeAllReactions(timestamp string) error {
 	if err != nil {
 		return err
 	}
-	for _, itemReaction := range reactions {
-		log.Println(itemReaction)
-		err := slackAPI.RemoveReaction(itemReaction.Name, ref)
-		if err != nil {
-			return err
+	if focusReactions == nil {
+		for _, itemReaction := range reactions {
+			err := slackAPI.RemoveReaction(itemReaction.Name, ref)
+			if err != nil && err.Error() != "no_reaction" {
+				return err
+			}
+		}
+	} else {
+		// No, I am not proud of this at all.
+		for _, itemReaction := range focusReactions {
+			err := slackAPI.RemoveReaction(itemReaction, ref)
+			if err != nil && err.Error() != "no_reaction" {
+				return err
+			}
 		}
 	}
 	return nil
 }
+
+func isRelevantReaction(reaction string, status bool, pin bool) bool {
+	switch reaction {
+	case config.StatusOKEmoji, config.StatusWarnEmoji, config.StatusErrorEmoji:
+		if status {
+			return true	
+		}
+	case config.PinEmoji, config.CurrentEmoji:
+		if pin {
+			return true
+		}
+	}
+	return false
+}
+

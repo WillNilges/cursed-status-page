@@ -127,6 +127,15 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 	return humanReadableTimestamp
 }
 
+func stringInSlice(searchSlice []string, searchString string) bool {
+	for _, s := range searchSlice {
+		if s == searchString {
+			return true
+		}
+	}
+	return false
+}
+
 func statusPage(c *gin.Context) {
 	var updates []StatusUpdate
 	var pinnedUpdates []StatusUpdate
@@ -150,8 +159,11 @@ func statusPage(c *gin.Context) {
 
 			willBeCurrentStatus := false
 			shouldPin := false
-			colorCount := 0
 			for _, reaction := range message.Reactions {
+				// Only take action on our reactions
+				if botReaction := stringInSlice(reaction.Users, config.SlackBotID); !botReaction {
+					continue
+				}
 				// If we find a pin at all, then use it
 				if reaction.Name == config.CurrentEmoji && hasCurrentStatus == false {
 					willBeCurrentStatus = true
@@ -159,16 +171,16 @@ func statusPage(c *gin.Context) {
 					shouldPin = true
 				}
 
-				// Use the last color we find, or the color with the most reactions.
-				if reaction.Count >= colorCount {
-					if reaction.Name == config.StatusOKEmoji {
+				// Use the first reaction sent by the bot that we find
+				if update.Background == config.StatusNeutralColor {
+					switch reaction.Name {
+					case config.StatusOKEmoji:
 						update.Background = config.StatusOKColor
-					} else if reaction.Name == config.StatusWarnEmoji {
+					case config.StatusWarnEmoji:
 						update.Background = config.StatusWarnColor
-					} else if reaction.Name == config.StatusErrorEmoji {
+					case config.StatusErrorEmoji:
 						update.Background = config.StatusErrorColor
 					}
-					colorCount = reaction.Count
 				}
 			}
 			if willBeCurrentStatus {
