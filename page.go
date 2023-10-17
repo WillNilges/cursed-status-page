@@ -26,8 +26,14 @@ func generateSites(message slack.Message) (sites []Site, err error) {
 	}
 	
 	for _, message := range siteMessages {
+
+		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
+		if strings.Contains(message.Text, botID) {
+			continue
+		}
 		var site Site
 		site.Name = message.Text
+		site.Background = config.StatusNeutralColor
 		for _, reaction := range message.Reactions {
 			// Only take action on our reactions
 			if botReaction := stringInSlice(reaction.Users, config.SlackBotID); !botReaction {
