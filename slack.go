@@ -156,11 +156,12 @@ func eventResp() func(c *gin.Context) {
 			case *slackevents.MessageEvent:
 				// If a message mentioning us gets added or deleted, then
 				// do something
-				// FIXME (willnilges): Not working when messages get deleted!?
-				/*if strings.Contains(ev.Text, config.SlackBotID) {
+				//log.Println(ev.Message.Text)		
+				log.Println(ev.SubType)
+	
+				if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
 					shouldUpdate = true
-				}*/
-				shouldUpdate = true
+				}
 			case *slackevents.AppMentionEvent:
 				shouldUpdate = true
 			default:
