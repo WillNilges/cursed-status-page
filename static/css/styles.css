@@ -88,6 +88,30 @@ li:nth-child(even) {
 	color: lightgray;
 }
 
+
+/* Site list */
+
+.siteList {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	justify-content: space-evenly;
+}
+
+.site {
+	display:flex;
+	
+	border-style: solid;
+
+	border-radius: 20px;
+	padding:5px;
+	margin:5px;
+	width: 200px;
+	height: 100px;
+
+	font-size:24px;
+}
+
 /* Styling the shilling link at the bottom */
 
 .shilling {

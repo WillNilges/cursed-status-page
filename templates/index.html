@@ -12,16 +12,15 @@
 		</div>
 
 		{{with .Sites}}
-		<ul>
+		<div class = "siteList">
 			{{range .}}
-		<div id="pinnedStatus" style="border-color:{{.Background}}">
-			<p>
+		<div class="site" style="border-color:{{.Background}}">
+			<div>
 			{{.Name}}
-			</p>
-			<p>{{.Background}}</p>
+			</div>
 		</div>
 			{{end}}
-		</ul>
+		</div>
 		{{end}}
 
 		{{with .CurrentStatus}}
