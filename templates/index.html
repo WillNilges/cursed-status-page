@@ -10,6 +10,20 @@
 			<img src="{{.Logo}}" width=100px height=100px style="padding-right:20px;">
 			<h1> {{.Org}} Status</h1>
 		</div>
+
+		{{with .Sites}}
+		<ul>
+			{{range .}}
+		<div id="pinnedStatus" style="border-color:{{.Background}}">
+			<p>
+			{{.Name}}
+			</p>
+			<p>{{.Background}}</p>
+		</div>
+			{{end}}
+		</ul>
+		{{end}}
+
 		{{with .CurrentStatus}}
 		<div id="currentStatus" style="background-color:{{.Background}}">
 			<div id="currentStatusText">

@@ -112,11 +112,13 @@ func eventResp() func(c *gin.Context) {
 				shouldUpdate = true
 			case *slackevents.ReactionAddedEvent:
 				reaction := ev.Reaction
+
 				botMentioned, err := isBotMentioned(ev.Item.Timestamp)
+				siteThread, err := isSiteThread(ev.Item.Timestamp)
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				if ev.User == config.SlackBotID || !isRelevantReaction(reaction, true, true) || !botMentioned {
+				if ev.User == config.SlackBotID || !isRelevantReaction(reaction, true, true) || (!botMentioned && !siteThread) {
 					break
 				}
 				// If necessary, remove a conflicting reaction
@@ -139,10 +141,10 @@ func eventResp() func(c *gin.Context) {
 					)
 				}
 				// Mirror the reaction on the message
-				slackAPI.AddReaction(reaction, slack.ItemRef{
-					Channel:   config.SlackStatusChannelID,
-					Timestamp: ev.Item.Timestamp,
-				})
+				slackAPI.AddReaction(reaction, slack.NewRefToMessage(
+					config.SlackStatusChannelID,
+					ev.Item.Timestamp,
+				))
 				shouldUpdate = true
 			case *slackevents.MessageEvent:
 				// If a message mentioning us gets added or deleted, then
@@ -162,7 +164,7 @@ func eventResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+				globalSites, globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
@@ -188,7 +190,7 @@ func interactionResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+				globalSites, globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}

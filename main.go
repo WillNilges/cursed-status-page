@@ -34,6 +34,8 @@ type Config struct {
 
 	CurrentEmoji string
 
+	SiteEmoji string
+
 	NominalMessage string
 	NominalSentBy  string
 	HelpMessage    string
@@ -46,6 +48,11 @@ type StatusUpdate struct {
 	Background string
 }
 
+type Site struct {
+	Name string
+	Background string
+}
+
 var config Config
 
 var globalChannelHistory []slack.Message
@@ -53,6 +60,7 @@ var globalChannelHistory []slack.Message
 var globalUpdates []StatusUpdate
 var globalPinnedUpdates []StatusUpdate
 var globalCurrentStatus StatusUpdate
+var globalSites []Site
 
 var slackAPI *slack.Client
 
@@ -85,6 +93,8 @@ func init() {
 
 	config.CurrentEmoji = os.Getenv("CSP_CURRENT_EMOJI")
 
+	config.SiteEmoji = os.Getenv("CSP_SITES_EMOJI")
+
 	config.NominalMessage = os.Getenv("CSP_NOMINAL_MESSAGE")
 	config.NominalSentBy = os.Getenv("CSP_NOMINAL_SENT_BY")
 	config.HelpMessage = os.Getenv("CSP_HELP_LINK")
@@ -102,7 +112,7 @@ func init() {
 	config.SlackBotID = authTestResponse.UserID
 
 	// Initialize the actual data we need for the status page
-	globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+	globalSites, globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
 	if err != nil {
 		log.Fatal(err)
 	}
