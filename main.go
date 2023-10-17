@@ -1,14 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"html/template"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -96,143 +91,21 @@ func init() {
 
 	slackAPI = slack.New(config.SlackAccessToken)
 
+	// Get the channel history
 	globalChannelHistory, err = getChannelHistory()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Get some deets we'll need from the slack API
 	authTestResponse, err := slackAPI.AuthTest()
 	config.SlackBotID = authTestResponse.UserID
 
+	// Initialize the actual data we need for the status page
 	globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func slackTSToHumanTime(slackTimestamp string) (hrt string) {
-	// Convert the Slack timestamp to a Unix timestamp (float64)
-	slackUnixTimestamp, err := strconv.ParseFloat(strings.Split(slackTimestamp, ".")[0], 64)
-	if err != nil {
-		fmt.Println("Error parsing Slack timestamp:", err)
-		return
-	}
-
-	// Create a time.Time object from the Unix timestamp (assuming UTC time zone)
-	slackTime := time.Unix(int64(slackUnixTimestamp), 0)
-
-	// Convert to a specific time zone (e.g., "America/New_York")
-	location, err := time.LoadLocation("America/New_York")
-	if err != nil {
-		fmt.Println("Error loading location:", err)
-		return
-	}
-
-	slackTimeInLocation := slackTime.In(location)
-
-	// Format the time as a human-readable string
-	humanReadableTimestamp := slackTimeInLocation.Format("2006-01-02 15:04:05 MST")
-
-	return humanReadableTimestamp
-}
-
-func stringInSlice(searchSlice []string, searchString string) bool {
-	for _, s := range searchSlice {
-		if s == searchString {
-			return true
-		}
-	}
-	return false
-}
-
-func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, currentStatus StatusUpdate, err error) {
-	log.Println("Building Status Page...")
-	hasCurrentStatus := false
-	for _, message := range globalChannelHistory {
-		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
-		// Ignore messages that don't mention us. Also, ignore messages that
-		// mention us but are empty!
-		if !strings.Contains(message.Text, teamID) || message.Text == teamID {
-			continue
-		}
-		msgUser, err := slackAPI.GetUserInfo(message.User)
-		if err != nil {
-			log.Println(err)
-			return updates, pinnedUpdates, currentStatus, err
-		}
-		realName := msgUser.RealName
-		var update StatusUpdate
-		update.Text = strings.Replace(message.Text, teamID, "", -1)
-		update.SentBy = realName
-		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
-		update.Background = config.StatusNeutralColor
-
-		willBeCurrentStatus := false
-		shouldPin := false
-		for _, reaction := range message.Reactions {
-			// Only take action on our reactions
-			if botReaction := stringInSlice(reaction.Users, config.SlackBotID); !botReaction {
-				continue
-			}
-			// If we find a pin at all, then use it
-			if reaction.Name == config.CurrentEmoji && hasCurrentStatus == false {
-				willBeCurrentStatus = true
-			} else if reaction.Name == config.PinEmoji {
-				shouldPin = true
-			}
-
-			// Use the first reaction sent by the bot that we find
-			if update.Background == config.StatusNeutralColor {
-				switch reaction.Name {
-				case config.StatusOKEmoji:
-					update.Background = config.StatusOKColor
-				case config.StatusWarnEmoji:
-					update.Background = config.StatusWarnColor
-				case config.StatusErrorEmoji:
-					update.Background = config.StatusErrorColor
-				}
-			}
-		}
-		if willBeCurrentStatus {
-			currentStatus = update
-			hasCurrentStatus = true
-		} else if shouldPin && len(pinnedUpdates) < config.PinLimit {
-			pinnedUpdates = append(pinnedUpdates, update)
-		} else {
-			updates = append(updates, update)
-		}
-	}
-
-	if !hasCurrentStatus {
-		currentStatus = StatusUpdate{
-			Text:       config.NominalMessage,
-			SentBy:     config.NominalSentBy,
-			TimeStamp:  "Now",
-			Background: config.StatusOKColor,
-		}
-	}
-
-	return updates, pinnedUpdates, currentStatus, nil
-}
-
-func statusPage(c *gin.Context) {
-	c.HTML(
-		http.StatusOK,
-		"index.html",
-		gin.H{
-			"HelpMessage":    template.HTML(config.HelpMessage),
-			"PinnedStatuses": globalPinnedUpdates,
-			"CurrentStatus":  globalCurrentStatus,
-			"StatusUpdates":  globalUpdates,
-			"Org":            config.OrgName,
-			"Logo":           config.LogoURL,
-			"Favicon":        config.FaviconURL,
-		},
-	)
-}
-
-func health(c *gin.Context) {
-	c.JSON(http.StatusOK, "cursed-status-page")
 }
 
 func main() {

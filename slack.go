@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -198,91 +197,4 @@ func interactionResp() func(c *gin.Context) {
 			c.String(http.StatusBadRequest, "invalid event type sent from slack")
 		}
 	}
-}
-
-func getThreadConversation(api *slack.Client, channelID string, threadTs string) (conversation []slack.Message, err error) {
-	// Get the conversation history
-	params := slack.GetConversationRepliesParameters{
-		ChannelID: channelID,
-		Timestamp: threadTs,
-	}
-	conversation, _, _, err = api.GetConversationReplies(&params)
-	if err != nil {
-		return conversation, err
-	}
-	return conversation, nil
-}
-
-func getChannelHistory() (conversation []slack.Message, err error) {
-	log.Println("Fetching channel history...")
-	limit, _ := strconv.Atoi(config.SlackTruncation)
-	params := slack.GetConversationHistoryParameters{
-		ChannelID: config.SlackStatusChannelID,
-		Oldest:    "0",   // Retrieve messages from the beginning of time
-		Inclusive: true,  // Include the oldest message
-		Limit:     limit, // Only get 100 messages
-	}
-
-	var history *slack.GetConversationHistoryResponse
-	history, err = slackAPI.GetConversationHistory(&params)
-	return history.Messages, err
-}
-
-func isBotMentioned(timestamp string) (isMentioned bool, err error) {
-	history, err := slackAPI.GetConversationHistory(
-		&slack.GetConversationHistoryParameters{
-			ChannelID: config.SlackStatusChannelID,
-			Inclusive: true,
-			Latest:    timestamp,
-			Oldest:    timestamp,
-			Limit:     1,
-		},
-	)
-	if err != nil {
-		return false, err
-	}
-
-	return strings.Contains(history.Messages[0].Text, config.SlackBotID), nil
-}
-
-func clearReactions(timestamp string, focusReactions []string) error {
-	ref := slack.ItemRef{
-		Channel:   config.SlackStatusChannelID,
-		Timestamp: timestamp,
-	}
-	reactions, err := slackAPI.GetReactions(ref, slack.NewGetReactionsParameters())
-	if err != nil {
-		return err
-	}
-	if focusReactions == nil {
-		for _, itemReaction := range reactions {
-			err := slackAPI.RemoveReaction(itemReaction.Name, ref)
-			if err != nil && err.Error() != "no_reaction" {
-				return err
-			}
-		}
-	} else {
-		// No, I am not proud of this at all.
-		for _, itemReaction := range focusReactions {
-			err := slackAPI.RemoveReaction(itemReaction, ref)
-			if err != nil && err.Error() != "no_reaction" {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func isRelevantReaction(reaction string, status bool, pin bool) bool {
-	switch reaction {
-	case config.StatusOKEmoji, config.StatusWarnEmoji, config.StatusErrorEmoji:
-		if status {
-			return true
-		}
-	case config.PinEmoji, config.CurrentEmoji:
-		if pin {
-			return true
-		}
-	}
-	return false
 }
