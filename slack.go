@@ -136,7 +136,6 @@ func eventResp() func(c *gin.Context) {
 						ev.Item.Timestamp,
 						[]string{
 							config.PinEmoji,
-							config.CurrentEmoji,
 						},
 					)
 				}
@@ -166,7 +165,7 @@ func eventResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				globalSites, globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+				globalSites, globalUpdates, globalPinnedUpdates, err = buildStatusPage()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
@@ -192,7 +191,7 @@ func interactionResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				globalSites, globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+				globalSites, globalUpdates, globalPinnedUpdates, err = buildStatusPage()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}

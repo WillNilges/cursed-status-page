@@ -23,22 +23,6 @@
 		</div>
 		{{end}}
 
-		{{with .CurrentStatus}}
-		<div id="currentStatus" style="background-color:{{.Background}}">
-			<div id="currentStatusText">
-			{{.Text}}
-			</div>
-			<div id="currentStatusMetadata">
-				<div>
-				{{.TimeStamp}}
-				</div>
-				<div>
-				Posted by {{.SentBy}}
-				</div>
-			</div>
-		</div>
-		{{end}}
-
 		<div style="display: flex; justify-content: center">
 		{{.HelpMessage}}
 		</div>

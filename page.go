@@ -59,9 +59,8 @@ func generateSites(message slack.Message) (sites []Site, err error) {
 	return sites, nil
 }
 
-func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []StatusUpdate, currentStatus StatusUpdate, err error) {
+func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []StatusUpdate, err error) {
 	log.Println("Building Status Page...")
-	hasCurrentStatus := false
 	for _, message := range globalChannelHistory {
 		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		// Ignore messages that don't mention us. Also, ignore messages that
@@ -75,7 +74,7 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 				sites, err = generateSites(message)
 				if err != nil {
 					log.Println(err)
-					return sites, updates, pinnedUpdates, currentStatus, err
+					return sites, updates, pinnedUpdates, err
 				}
 				break
 			}
@@ -87,7 +86,7 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 		msgUser, err := slackAPI.GetUserInfo(message.User)
 		if err != nil {
 			log.Println(err)
-			return sites, updates, pinnedUpdates, currentStatus, err
+			return sites, updates, pinnedUpdates, err
 		}
 		realName := msgUser.RealName
 		var update StatusUpdate
@@ -96,7 +95,6 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 		update.Background = config.StatusNeutralColor
 
-		willBeCurrentStatus := false
 		shouldPin := false
 		for _, reaction := range message.Reactions {
 			// Only take action on our reactions
@@ -104,9 +102,7 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 				continue
 			}
 			// If we find a pin at all, then use it
-			if reaction.Name == config.CurrentEmoji && hasCurrentStatus == false {
-				willBeCurrentStatus = true
-			} else if reaction.Name == config.PinEmoji {
+			if reaction.Name == config.PinEmoji {
 				shouldPin = true
 			}
 
@@ -122,26 +118,14 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 				}
 			}
 		}
-		if willBeCurrentStatus {
-			currentStatus = update
-			hasCurrentStatus = true
-		} else if shouldPin && len(pinnedUpdates) < config.PinLimit {
+		if shouldPin && len(pinnedUpdates) < config.PinLimit {
 			pinnedUpdates = append(pinnedUpdates, update)
 		} else {
 			updates = append(updates, update)
 		}
 	}
 
-	if !hasCurrentStatus {
-		currentStatus = StatusUpdate{
-			Text:       config.NominalMessage,
-			SentBy:     config.NominalSentBy,
-			TimeStamp:  "Now",
-			Background: config.StatusOKColor,
-		}
-	}
-
-	return sites, updates, pinnedUpdates, currentStatus, nil
+	return sites, updates, pinnedUpdates, nil
 }
 
 func statusPage(c *gin.Context) {
@@ -151,7 +135,6 @@ func statusPage(c *gin.Context) {
 		gin.H{
 			"HelpMessage":    template.HTML(config.HelpMessage),
 			"PinnedStatuses": globalPinnedUpdates,
-			"CurrentStatus":  globalCurrentStatus,
 			"StatusUpdates":  globalUpdates,
 			"Sites": globalSites, 
 			"Org":            config.OrgName,

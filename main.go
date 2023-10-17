@@ -32,8 +32,6 @@ type Config struct {
 	PinEmoji string
 	PinLimit int
 
-	CurrentEmoji string
-
 	SiteEmoji string
 
 	NominalMessage string
@@ -59,7 +57,6 @@ var globalChannelHistory []slack.Message
 
 var globalUpdates []StatusUpdate
 var globalPinnedUpdates []StatusUpdate
-var globalCurrentStatus StatusUpdate
 var globalSites []Site
 
 var slackAPI *slack.Client
@@ -91,7 +88,6 @@ func init() {
 	config.PinEmoji = os.Getenv("CSP_PIN_EMOJI")
 	config.PinLimit, _ = strconv.Atoi(os.Getenv("CSP_PIN_LIMIT"))
 
-	config.CurrentEmoji = os.Getenv("CSP_CURRENT_EMOJI")
 
 	config.SiteEmoji = os.Getenv("CSP_SITES_EMOJI")
 
@@ -112,7 +108,7 @@ func init() {
 	config.SlackBotID = authTestResponse.UserID
 
 	// Initialize the actual data we need for the status page
-	globalSites, globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+	globalSites, globalUpdates, globalPinnedUpdates, err = buildStatusPage()
 	if err != nil {
 		log.Fatal(err)
 	}

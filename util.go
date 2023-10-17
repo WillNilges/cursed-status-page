@@ -170,7 +170,7 @@ func isRelevantReaction(reaction string, status bool, pin bool) bool {
 		if status {
 			return true
 		}
-	case config.PinEmoji, config.CurrentEmoji, config.SiteEmoji:
+	case config.PinEmoji, config.SiteEmoji:
 		if pin {
 			return true
 		}
