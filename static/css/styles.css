@@ -100,14 +100,17 @@ li:nth-child(even) {
 
 .site {
 	display:flex;
-	
-	border-style: solid;
 
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	
+	/*border-style: solid;*/
 	border-radius: 20px;
 	padding:5px;
 	margin:5px;
-	width: 200px;
-	height: 100px;
+	width: 150px;
+	height: 75px;
 
 	font-size:24px;
 }
