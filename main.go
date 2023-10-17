@@ -53,7 +53,7 @@ type StatusUpdate struct {
 
 var config Config
 
-var statusHistory []slack.Message
+var globalChannelHistory []slack.Message
 
 var globalUpdates []StatusUpdate
 var globalPinnedUpdates []StatusUpdate
@@ -96,7 +96,7 @@ func init() {
 
 	slackAPI = slack.New(config.SlackAccessToken)
 
-	statusHistory, err = getChannelHistory()
+	globalChannelHistory, err = getChannelHistory()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,10 +145,10 @@ func stringInSlice(searchSlice []string, searchString string) bool {
 	return false
 }
 
-func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, currentStatus StatusUpdate, err error){
+func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, currentStatus StatusUpdate, err error) {
 	log.Println("Building Status Page...")
 	hasCurrentStatus := false
-	for _, message := range statusHistory {
+	for _, message := range globalChannelHistory {
 		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		// Ignore messages that don't mention us. Also, ignore messages that
 		// mention us but are empty!
@@ -158,7 +158,6 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, cu
 		msgUser, err := slackAPI.GetUserInfo(message.User)
 		if err != nil {
 			log.Println(err)
-			//c.String(http.StatusInternalServerError, "error reading request body: %s", err.Error())
 			return updates, pinnedUpdates, currentStatus, err
 		}
 		realName := msgUser.RealName

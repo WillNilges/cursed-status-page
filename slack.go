@@ -159,7 +159,7 @@ func eventResp() func(c *gin.Context) {
 			}
 			// Update our history
 			if shouldUpdate {
-				statusHistory, err = getChannelHistory()
+				globalChannelHistory, err = getChannelHistory()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
@@ -185,7 +185,7 @@ func interactionResp() func(c *gin.Context) {
 
 		if payload.Type == "message_action" {
 			if payload.CallbackID == CSPUpdateStatusPage {
-				statusHistory, err = getChannelHistory()
+				globalChannelHistory, err = getChannelHistory()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
