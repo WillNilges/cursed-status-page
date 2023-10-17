@@ -10,7 +10,12 @@ A simple status page webserver that you control using Slack
 
 
 ## Usage
-Ping `@Cursed Status Page` in the `#status-page` channel with your status update, and then react to it with 🟢, 🟡, or 🔴 to turn it green, yellow, or red respectively.
+Here's how it works:
+- Post a message to status-page and ping `@Cursed Status Page`. The bot will reload its cache, pull the message, and display it on the "previous statuses" list.
+- To pin it, react with 📌 . The bot will also react with that emoji, and the message will show up pinned. If there are more than 5 pinned, only the 5 most recent messages will show up pinned.
+- To make it the current status, react with 🏆. The bot will react in kind. You can only have one current status, and the most recent 🏆'ed message will be the current one.
+- To set a status color, react with ✅ , ⚠️ , or 🔥. The bot will react in kind.
+- Basically, If a message already has a status set by someone else, you can simply react with a different status, and the bot will update accordingly.
 
 ## Setup
 
@@ -49,7 +54,11 @@ To serve this app, I use [ngrok](https://ngrok.com/)
 ngrok http --domain <your-domain> --host-header=rewrite localhost:8080
 ```
 
-### Setup (Production)
+
+### Setup (Dockerfile)
+
+> [!WARNING]
+> It is recommended to use the [Docker Image](https://hub.docker.com/repository/docker/willnilges/cursed-status-page/general)
 
 This repo has a Dockerfile you can use
 
@@ -72,4 +81,3 @@ Build and Run
 docker build . --tag cursed-status-page
 docker run --rm --env-file .env -p 8080:8080 cursed-status-page
 ```
-
