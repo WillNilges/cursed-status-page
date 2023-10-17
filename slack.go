@@ -16,16 +16,8 @@ import (
 	"github.com/slack-go/slack/slackevents"
 )
 
-type GrabCallbackIDs string
-type GrabBlockActionIDs string
-
 const (
 	// Callback ID
-	GrabInteractionAppendThreadTranscript = "append_thread_transcript"
-	// Block Action IDs for that Callback ID
-	GrabInteractionAppendThreadTranscriptConfirm = "append_thread_transcript_confirm"
-	GrabInteractionAppendThreadTranscriptCancel  = "append_thread_transcript_cancel"
-
 	CSPUpdateStatusPage = "csp_update_status_page"
 )
 
@@ -156,9 +148,7 @@ func eventResp() func(c *gin.Context) {
 			case *slackevents.MessageEvent:
 				// If a message mentioning us gets added or deleted, then
 				// do something
-				//log.Println(ev.Message.Text)		
 				log.Println(ev.SubType)
-	
 				if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
 					shouldUpdate = true
 				}
@@ -170,6 +160,10 @@ func eventResp() func(c *gin.Context) {
 			// Update our history
 			if shouldUpdate {
 				statusHistory, err = getChannelHistory()
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+				}
+				globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
@@ -195,10 +189,14 @@ func interactionResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
+				globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+				}
 			}
+		} else {
+			c.String(http.StatusBadRequest, "invalid event type sent from slack")
 		}
-
-		// TODO: Else get angery
 	}
 }
 

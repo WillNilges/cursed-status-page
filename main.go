@@ -55,6 +55,10 @@ var config Config
 
 var statusHistory []slack.Message
 
+var globalUpdates []StatusUpdate
+var globalPinnedUpdates []StatusUpdate
+var globalCurrentStatus StatusUpdate
+
 var slackAPI *slack.Client
 
 func init() {
@@ -94,11 +98,16 @@ func init() {
 
 	statusHistory, err = getChannelHistory()
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 
 	authTestResponse, err := slackAPI.AuthTest()
 	config.SlackBotID = authTestResponse.UserID
+
+	globalUpdates, globalPinnedUpdates, globalCurrentStatus, err = buildStatusPage()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func slackTSToHumanTime(slackTimestamp string) (hrt string) {
@@ -136,12 +145,9 @@ func stringInSlice(searchSlice []string, searchString string) bool {
 	return false
 }
 
-func statusPage(c *gin.Context) {
-	var updates []StatusUpdate
-	var pinnedUpdates []StatusUpdate
-
+func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, currentStatus StatusUpdate, err error){
+	log.Println("Building Status Page...")
 	hasCurrentStatus := false
-	var currentStatus StatusUpdate
 	for _, message := range statusHistory {
 		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		// Ignore messages that don't mention us. Also, ignore messages that
@@ -151,8 +157,9 @@ func statusPage(c *gin.Context) {
 		}
 		msgUser, err := slackAPI.GetUserInfo(message.User)
 		if err != nil {
-			fmt.Println(err)
-			c.String(http.StatusInternalServerError, "error reading request body: %s", err.Error())
+			log.Println(err)
+			//c.String(http.StatusInternalServerError, "error reading request body: %s", err.Error())
+			return updates, pinnedUpdates, currentStatus, err
 		}
 		realName := msgUser.RealName
 		var update StatusUpdate
@@ -206,14 +213,18 @@ func statusPage(c *gin.Context) {
 		}
 	}
 
+	return updates, pinnedUpdates, currentStatus, nil
+}
+
+func statusPage(c *gin.Context) {
 	c.HTML(
 		http.StatusOK,
 		"index.html",
 		gin.H{
 			"HelpMessage":    template.HTML(config.HelpMessage),
-			"PinnedStatuses": pinnedUpdates,
-			"CurrentStatus":  currentStatus,
-			"StatusUpdates":  updates,
+			"PinnedStatuses": globalPinnedUpdates,
+			"CurrentStatus":  globalCurrentStatus,
+			"StatusUpdates":  globalUpdates,
 			"Org":            config.OrgName,
 			"Logo":           config.LogoURL,
 			"Favicon":        config.FaviconURL,
