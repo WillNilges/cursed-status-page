@@ -150,7 +150,9 @@ func eventResp() func(c *gin.Context) {
 				// If a message mentioning us gets added or deleted, then
 				// do something
 				log.Println(ev.SubType)
-				if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
+				// Check if a new message got posted to the site thread
+				isSiteThread, _ := isSiteThread(ev.TimeStamp)
+				if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" || isSiteThread {
 					shouldUpdate = true
 				}
 			case *slackevents.AppMentionEvent:

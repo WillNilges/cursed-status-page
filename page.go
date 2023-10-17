@@ -63,11 +63,10 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 	log.Println("Building Status Page...")
 	hasCurrentStatus := false
 	for _, message := range globalChannelHistory {
-		// FIXME (willnilges): Why is this teamID?
-		teamID := fmt.Sprintf("<@%s>", config.SlackBotID)
+		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		// Ignore messages that don't mention us. Also, ignore messages that
 		// mention us but are empty!
-		if !strings.Contains(message.Text, teamID) || message.Text == teamID {
+		if !strings.Contains(message.Text, botID) || message.Text == botID {
 			continue
 		}
 		// Check if there's a sites reaction
@@ -78,8 +77,12 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 					log.Println(err)
 					return sites, updates, pinnedUpdates, currentStatus, err
 				}
-				continue
+				break
 			}
+		}
+		// Now that we've checked for the sites reaction, bail if we see "Sites"
+		if strings.Contains(message.Text, fmt.Sprintf("%s Sites", botID)) {
+			continue
 		}
 		msgUser, err := slackAPI.GetUserInfo(message.User)
 		if err != nil {
@@ -88,7 +91,7 @@ func buildStatusPage() (sites []Site, updates []StatusUpdate, pinnedUpdates []St
 		}
 		realName := msgUser.RealName
 		var update StatusUpdate
-		update.Text = strings.Replace(message.Text, teamID, "", -1)
+		update.Text = strings.Replace(message.Text, botID, "", -1)
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 		update.Background = config.StatusNeutralColor
