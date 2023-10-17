@@ -88,8 +88,52 @@ func isBotMentioned(timestamp string) (isMentioned bool, err error) {
 	if err != nil {
 		return false, err
 	}
+	if len(history.Messages) > 0 {
+		return strings.Contains(history.Messages[0].Text, config.SlackBotID), nil
+	}
+	return false, err
+}
 
-	return strings.Contains(history.Messages[0].Text, config.SlackBotID), nil
+func isSiteThread(timestamp string) (siteThread bool, err error) {
+	// First, get more info about the message
+	historyParams := slack.GetConversationRepliesParameters{
+		ChannelID: config.SlackStatusChannelID,
+		Timestamp: timestamp,
+		Inclusive: true,
+	}
+	replies, _, _, err := slackAPI.GetConversationReplies(&historyParams)
+	if err != nil {
+		return false, err
+	}
+
+	// Check if there are any replies
+	if len(replies) < 1 {
+		return false, fmt.Errorf("No message found...?")
+	}
+
+	// Extract the content of the first message
+	firstMessage := replies[0]
+
+	// I fucking hate go
+
+	historyParams = slack.GetConversationRepliesParameters{
+		ChannelID: config.SlackStatusChannelID,
+		Timestamp: firstMessage.ThreadTimestamp,
+		Inclusive: true,
+	}
+	replies, _, _, err = slackAPI.GetConversationReplies(&historyParams)
+	if err != nil {
+		return false, err
+	}
+
+	// Make sure we got something
+	if len(replies) < 1 {
+		return false, fmt.Errorf("No replies found in the thread")
+	}
+
+	// Check if the thread mentions us
+	firstMessage = replies[0]
+	return strings.Contains(firstMessage.Text, config.SlackBotID), nil
 }
 
 func clearReactions(timestamp string, focusReactions []string) error {
