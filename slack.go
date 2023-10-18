@@ -100,6 +100,10 @@ func eventResp() func(c *gin.Context) {
 			innerEvent := event.InnerEvent
 			shouldUpdate := false
 			switch ev := innerEvent.Data.(type) {
+			case *slackevents.PinAddedEvent:
+				shouldUpdate = true
+			case *slackevents.PinRemovedEvent:
+				shouldUpdate = true
 			case *slackevents.ReactionRemovedEvent:
 				if ev.User == config.SlackBotID {
 					break
