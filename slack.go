@@ -143,8 +143,7 @@ func eventResp() func(c *gin.Context) {
 				// do something
 				log.Println(ev.SubType)
 				// Check if a new message got posted to the site thread
-				isSiteThread, _ := isSiteThread(ev.TimeStamp)
-				if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" || isSiteThread {
+				if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
 					shouldUpdate = true
 				}
 			case *slackevents.AppMentionEvent:
