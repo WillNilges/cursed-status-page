@@ -57,6 +57,15 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 		}
 	}
 
+	if len(pinnedUpdates) == 0 {
+		pinnedUpdates = append(pinnedUpdates, StatusUpdate{
+			Text:       config.NominalMessage,
+			SentBy:     config.NominalSentBy,
+			TimeStamp:  "Now",
+			Background: config.StatusOKColor,
+		})
+	}
+
 	return updates, pinnedUpdates, nil
 }
 
