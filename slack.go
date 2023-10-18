@@ -131,13 +131,6 @@ func eventResp() func(c *gin.Context) {
 							config.StatusErrorEmoji,
 						},
 					)
-				} else if isRelevantReaction(reaction, false, true) {
-					clearReactions(
-						ev.Item.Timestamp,
-						[]string{
-							config.PinEmoji,
-						},
-					)
 				}
 				// Mirror the reaction on the message
 				slackAPI.AddReaction(reaction, slack.NewRefToMessage(
@@ -165,7 +158,7 @@ func eventResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				globalSites, globalUpdates, globalPinnedUpdates, err = buildStatusPage()
+				globalUpdates, globalPinnedUpdates, err = buildStatusPage()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
@@ -191,7 +184,7 @@ func interactionResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				globalSites, globalUpdates, globalPinnedUpdates, err = buildStatusPage()
+				globalUpdates, globalPinnedUpdates, err = buildStatusPage()
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
