@@ -1,136 +1,15 @@
-body {
-	display: flex;
-	justify-content: center;
-	flex-direction: column;
-	font-family: Sans-serif
+.max-width-container.container-fluid {
+	max-width: 1342px;
+	padding:0em 3em;
+	/* margin: 0 auto;  */
+	/* padding: 10em;  */
 }
 
-ul {
-	padding-left: 0px;
+a{
+	color: inherit !important;
 }
 
-li {
-	list-style: none;
-	margin:10px 0px 10px;
-}
-
-#title {
-	font-size: 48px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
-
-/*For the status that shows up at the top of the page*/
-
-#currentStatus {
-	padding:10px;
-	margin:30px;
-	border-radius: 20px;
-}
-
-#currentStatusText {
-	display:flex;
-	justify-content: center;
-	font-size: 36px;
-	padding:40px;
-}
-
-#currentStatusMetadata {
-	display: flex;
-	justify-content: space-between;
-	padding: 0px 20px 0px 20px;
-}
-
-/* For pinned statuses */
-#pinnedStatus {
-	background-color: white;
-	border-style: solid;
-	border-radius: 20px;
-	margin: 10px 30px 10px;
-}
-
-#updateText {
-	font-size: 24px;
-	display: flex;
-	justify-content: center;
-	padding:20px;
-}
-
-#metadata {
-	margin-left: 10px;
-}
-
-/* For all previous, non-pinned statuses */
-
-li:nth-child(odd) { 
-	background: #ffffff; 
-}
-li:nth-child(even) { 
-	background: #80808010;
-	border-radius: 5px;
-}
-
-#oldUpdates li {
-	list-style: none;
-	margin:0px 20% 0px;
-	padding: 10px;
-}
-
-#oldUpdate {
-	display: flex;
-	flex-direction: column;
-}
-
-#oldMetadata {
-	display:flex;
-	justify-content: space-between;
-	color: lightgray;
-}
-
-
-/* Site list */
-
-.siteList {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	justify-content: space-evenly;
-}
-
-.site {
-	display:flex;
-
-	align-items: center;
-	justify-content: center;
-	text-align: center;
-	
-	/*border-style: solid;*/
-	border-radius: 20px;
-	padding:5px;
-	margin:5px;
-	width: 150px;
-	height: 75px;
-
-	font-size:24px;
-}
-
-/* Styling the shilling link at the bottom */
-
-.shilling {
-	display: flex;
-	justify-content: center;
-	color: lightgray;
-}
-
-
-.shilling a:link {
-    color: gray;
-    background-color: transparent;
-    text-decoration: underline;
-}
-
-.shilling a:visited {
-    color: gray;
-    background-color: transparent;
+footer{
+    --bs-bg-opacity: 1;
+    background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity)) !important;
 }

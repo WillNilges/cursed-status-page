@@ -30,7 +30,8 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 		update.Text = strings.Replace(message.Text, botID, "", -1)
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
-		update.Background = config.StatusNeutralColor
+		update.BackgroundClass = ""
+		update.IconFilename = ""
 
 		for _, reaction := range message.Reactions {
 			// Only take action on our reactions
@@ -38,32 +39,25 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 				continue
 			}
 
-			// Use the first reaction sent by the bot that we find
-			if update.Background == config.StatusNeutralColor {
-				switch reaction.Name {
-				case config.StatusOKEmoji:
-					update.Background = config.StatusOKColor
-				case config.StatusWarnEmoji:
-					update.Background = config.StatusWarnColor
-				case config.StatusErrorEmoji:
-					update.Background = config.StatusErrorColor
-				}
+		// Use the first reaction sent by the bot that we find
+			switch reaction.Name {
+			case config.StatusOKEmoji:
+				update.BackgroundClass = "list-group-item-success"
+				update.IconFilename = "checkmark.svg"
+			case config.StatusWarnEmoji:
+				update.BackgroundClass = "list-group-item-warning"
+				update.IconFilename = "warning.svg"
+			case config.StatusErrorEmoji:
+				update.BackgroundClass = "list-group-item-danger"
+				update.IconFilename = "error.svg"
 			}
+
 		}
 		if len(message.PinnedTo) > 0 {
 			pinnedUpdates = append(pinnedUpdates, update)
 		} else {
 			updates = append(updates, update)
 		}
-	}
-
-	if len(pinnedUpdates) == 0 {
-		pinnedUpdates = append(pinnedUpdates, StatusUpdate{
-			Text:       config.NominalMessage,
-			SentBy:     config.NominalSentBy,
-			TimeStamp:  "Now",
-			Background: config.StatusOKColor,
-		})
 	}
 
 	return updates, pinnedUpdates, nil
@@ -80,6 +74,7 @@ func statusPage(c *gin.Context) {
 			"Org":            config.OrgName,
 			"Logo":           config.LogoURL,
 			"Favicon":        config.FaviconURL,
+			"NominalMessage": config.NominalMessage,
 		},
 	)
 }
