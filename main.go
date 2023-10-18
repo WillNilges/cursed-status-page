@@ -39,7 +39,8 @@ type StatusUpdate struct {
 	Text       string
 	SentBy     string
 	TimeStamp  string
-	Background string
+	BackgroundClass string
+	IconFilename string
 }
 
 var config Config
