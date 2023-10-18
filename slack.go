@@ -118,11 +118,11 @@ func eventResp() func(c *gin.Context) {
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				if ev.User == config.SlackBotID || !isRelevantReaction(reaction, true, true) || (!botMentioned && !siteThread) {
+				if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned && !siteThread) {
 					break
 				}
 				// If necessary, remove a conflicting reaction
-				if isRelevantReaction(reaction, true, false) {
+				if isRelevantReaction(reaction) {
 					clearReactions(
 						ev.Item.Timestamp,
 						[]string{
