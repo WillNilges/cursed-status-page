@@ -50,7 +50,11 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 				}
 			}
 		}
-		updates = append(updates, update)
+		if len(message.PinnedTo) > 0 {
+			pinnedUpdates = append(pinnedUpdates, update)
+		} else {
+			updates = append(updates, update)
+		}
 	}
 
 	return updates, pinnedUpdates, nil
