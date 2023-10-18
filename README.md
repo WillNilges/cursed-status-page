@@ -10,7 +10,7 @@ A simple status page webserver that you control using Slack
 
 
 ## Usage
-Ping `@Cursed Status Page` in the `#status-page` channel with your status update, and then react to it with 🟢, 🟡, or 🔴 to turn it green, yellow, or red respectively.
+Ping `@Cursed Status Page` in the `#status-page` channel with your status update, and then react to it with 🟢, 🟡, or 🔴 to turn it green, yellow, or red respectively. Pin the message in Slack to pin the message on the channel.
 
 ## Setup
 
