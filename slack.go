@@ -112,13 +112,11 @@ func eventResp() func(c *gin.Context) {
 				shouldUpdate = true
 			case *slackevents.ReactionAddedEvent:
 				reaction := ev.Reaction
-
 				botMentioned, err := isBotMentioned(ev.Item.Timestamp)
-				siteThread, err := isSiteThread(ev.Item.Timestamp)
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())
 				}
-				if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned && !siteThread) {
+				if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned) {
 					break
 				}
 				// If necessary, remove a conflicting reaction
