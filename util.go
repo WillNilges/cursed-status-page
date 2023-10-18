@@ -164,16 +164,10 @@ func clearReactions(timestamp string, focusReactions []string) error {
 	return nil
 }
 
-func isRelevantReaction(reaction string, status bool, pin bool) bool {
+func isRelevantReaction(reaction string) bool {
 	switch reaction {
 	case config.StatusOKEmoji, config.StatusWarnEmoji, config.StatusErrorEmoji:
-		if status {
-			return true
-		}
-	case config.PinEmoji, config.SiteEmoji:
-		if pin {
-			return true
-		}
+		return true
 	}
 	return false
 }
