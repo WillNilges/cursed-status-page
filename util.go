@@ -71,12 +71,12 @@ func getChannelHistory() (conversation []slack.Message, err error) {
 	}
 
 	var history *slack.GetConversationHistoryResponse
-	history, err = slackAPI.GetConversationHistory(&params)
+	history, err = slackSocket.GetConversationHistory(&params)
 	return history.Messages, err
 }
 
 func isBotMentioned(timestamp string) (isMentioned bool, err error) {
-	history, err := slackAPI.GetConversationHistory(
+	history, err := slackSocket.GetConversationHistory(
 		&slack.GetConversationHistoryParameters{
 			ChannelID: config.SlackStatusChannelID,
 			Inclusive: true,
@@ -99,13 +99,13 @@ func clearReactions(timestamp string, focusReactions []string) error {
 		Channel:   config.SlackStatusChannelID,
 		Timestamp: timestamp,
 	}
-	reactions, err := slackAPI.GetReactions(ref, slack.NewGetReactionsParameters())
+	reactions, err := slackSocket.GetReactions(ref, slack.NewGetReactionsParameters())
 	if err != nil {
 		return err
 	}
 	if focusReactions == nil {
 		for _, itemReaction := range reactions {
-			err := slackAPI.RemoveReaction(itemReaction.Name, ref)
+			err := slackSocket.RemoveReaction(itemReaction.Name, ref)
 			if err != nil && err.Error() != "no_reaction" {
 				return err
 			}
@@ -113,7 +113,7 @@ func clearReactions(timestamp string, focusReactions []string) error {
 	} else {
 		// No, I am not proud of this at all.
 		for _, itemReaction := range focusReactions {
-			err := slackAPI.RemoveReaction(itemReaction, ref)
+			err := slackSocket.RemoveReaction(itemReaction, ref)
 			if err != nil && err.Error() != "no_reaction" {
 				return err
 			}

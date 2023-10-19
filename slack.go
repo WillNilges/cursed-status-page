@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
+	"github.com/slack-go/slack/socketmode"
 )
 
 const (
@@ -69,6 +70,108 @@ func installResp() func(c *gin.Context) {
 
 		c.Redirect(http.StatusFound, fmt.Sprintf("slack://app?team=%s&id=%s&tab=about", resp.Team.ID, resp.AppID))
 	}
+}
+
+func runSocket() {
+	go func() {
+		for evt := range slackSocket.Events {
+			switch evt.Type {
+			case socketmode.EventTypeConnecting:
+				fmt.Println("Connecting to Slack with Socket Mode...")
+			case socketmode.EventTypeConnectionError:
+				fmt.Println("Connection failed. Retrying later...")
+			case socketmode.EventTypeConnected:
+				fmt.Println("Connected to Slack with Socket Mode.")
+			case socketmode.EventTypeEventsAPI:
+				eventsAPIEvent, ok := evt.Data.(slackevents.EventsAPIEvent)
+				if !ok {
+					fmt.Printf("Ignored %+v\n", evt)
+
+					continue
+				}
+				fmt.Printf("Event received: %+v\n", eventsAPIEvent)
+
+				slackSocket.Ack(*evt.Request)
+
+				switch eventsAPIEvent.Type {
+				case slackevents.CallbackEvent:
+					shouldUpdate := false
+					innerEvent := eventsAPIEvent.InnerEvent
+					switch ev := innerEvent.Data.(type) {
+					case *slackevents.PinAddedEvent:
+						shouldUpdate = true
+					case *slackevents.PinRemovedEvent:
+						shouldUpdate = true
+					case *slackevents.ReactionRemovedEvent:
+						if ev.User == config.SlackBotID {
+							break
+						}
+						reaction := ev.Reaction
+						slackAPI.RemoveReaction(reaction, slack.ItemRef{
+							Channel:   config.SlackStatusChannelID,
+							Timestamp: ev.Item.Timestamp,
+						})
+						shouldUpdate = true
+					case *slackevents.ReactionAddedEvent:
+						reaction := ev.Reaction
+						botMentioned, err := isBotMentioned(ev.Item.Timestamp)
+						if err != nil {
+							log.Println(err)
+							break
+						}
+						if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned) {
+							break
+						}
+						// If necessary, remove a conflicting reaction
+						if isRelevantReaction(reaction) {
+							clearReactions(
+								ev.Item.Timestamp,
+								[]string{
+									config.StatusOKEmoji,
+									config.StatusWarnEmoji,
+									config.StatusErrorEmoji,
+								},
+							)
+						}
+						// Mirror the reaction on the message
+						slackAPI.AddReaction(reaction, slack.NewRefToMessage(
+							config.SlackStatusChannelID,
+							ev.Item.Timestamp,
+						))
+						shouldUpdate = true
+					case *slackevents.MessageEvent:
+						// If a message mentioning us gets added or deleted, then
+						// do something
+						log.Println(ev.SubType)
+						// Check if a new message got posted to the site thread
+						if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
+							shouldUpdate = true
+						}
+					case *slackevents.AppMentionEvent:
+						shouldUpdate = true
+					default:
+						log.Println("no handler for event of given type")
+					}
+					// Update our history
+					if shouldUpdate {
+						var err error
+						globalChannelHistory, err = getChannelHistory()
+						if err != nil {
+							log.Println(err.Error())
+						}
+						globalUpdates, globalPinnedUpdates, err = buildStatusPage()
+						if err != nil {
+							log.Println(err.Error())
+						}
+					}
+
+				default:
+					slackSocket.Debugf("unsupported Events API event received")
+				}
+			}
+		}
+	}()
+	slackSocket.Run()
 }
 
 func eventResp() func(c *gin.Context) {
