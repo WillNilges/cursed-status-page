@@ -110,17 +110,6 @@ func main() {
 	app.LoadHTMLGlob("templates/*")
 	app.Static("/static", "./static")
 
-	slackGroup := app.Group("/slack")
-
-	// Serve initial interactions with the bot
-	eventGroup := slackGroup.Group("/event")
-	eventGroup.Use(signatureVerification)
-	eventGroup.POST("/handle", eventResp())
-
-	interactionGroup := slackGroup.Group("/interaction")
-	interactionGroup.Use(signatureVerification)
-	interactionGroup.POST("/handle", interactionResp())
-
 	app.GET("/", statusPage)
 	app.GET("/health", health)
 
