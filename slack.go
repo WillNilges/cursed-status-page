@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -164,39 +163,49 @@ func runSocket() {
 							log.Println(err.Error())
 						}
 					}
-
 				default:
 					slackSocket.Debugf("unsupported Events API event received")
 				}
+			case socketmode.EventTypeInteractive:
+				callback, ok := evt.Data.(slack.InteractionCallback)
+				if !ok {
+					fmt.Printf("Ignored %+v\n", evt)
+					continue
+				}
+
+				fmt.Printf("Interaction received: %+v\n", callback)
+
+				var payload interface{}
+
+				switch callback.Type {
+				case slack.InteractionTypeBlockActions:
+					// See https://api.slack.com/apis/connections/socket-implement#button
+
+					slackSocket.Debugf("button clicked!")
+				case slack.InteractionTypeShortcut:
+					log.Printf("Got shortcut: %s", callback.CallbackID)
+					if callback.CallbackID == CSPUpdateStatusPage {
+						var err error
+						globalChannelHistory, err = getChannelHistory()
+						if err != nil {
+							log.Println(err)
+						}
+						globalUpdates, globalPinnedUpdates, err = buildStatusPage()
+						if err != nil {
+							log.Println(err)
+						}
+					}
+				case slack.InteractionTypeViewSubmission:
+					// See https://api.slack.com/apis/connections/socket-implement#modal
+				case slack.InteractionTypeDialogSubmission:
+				default:
+
+				}
+
+				slackSocket.Ack(*evt.Request, payload)
+
 			}
 		}
 	}()
 	slackSocket.Run()
-}
-
-// FIXME: Use socketmode
-func interactionResp() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		var payload slack.InteractionCallback
-		err := json.Unmarshal([]byte(c.Request.FormValue("payload")), &payload)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "error reading slack interaction payload: %s", err.Error())
-			return
-		}
-
-		if payload.Type == "message_action" {
-			if payload.CallbackID == CSPUpdateStatusPage {
-				globalChannelHistory, err = getChannelHistory()
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-				}
-				globalUpdates, globalPinnedUpdates, err = buildStatusPage()
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-				}
-			}
-		} else {
-			c.String(http.StatusBadRequest, "invalid event type sent from slack")
-		}
-	}
 }
