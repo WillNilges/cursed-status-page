@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/socketmode"
 )
 
 type Config struct {
@@ -16,6 +17,7 @@ type Config struct {
 
 	SlackTeamID          string
 	SlackAccessToken     string
+	SlackAppToken        string
 	SlackStatusChannelID string
 	SlackBotID           string
 	SlackTruncation      string
@@ -48,6 +50,7 @@ var globalUpdates []StatusUpdate
 var globalPinnedUpdates []StatusUpdate
 
 var slackAPI *slack.Client
+var slackSocket *socketmode.Client
 
 func init() {
 	// Load environment variables one way or another
@@ -62,6 +65,7 @@ func init() {
 
 	config.SlackTeamID = os.Getenv("CSP_SLACK_TEAMID")
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
+	config.SlackAppToken = os.Getenv("CSP_SLACK_APP_TOKEN")
 	config.SlackStatusChannelID = os.Getenv("CSP_SLACK_STATUS_CHANNEL")
 	config.SlackTruncation = os.Getenv("CSP_SLACK_TRUNCATION")
 
@@ -77,7 +81,10 @@ func init() {
 	config.NominalSentBy = os.Getenv("CSP_NOMINAL_SENT_BY")
 	config.HelpMessage = os.Getenv("CSP_HELP_LINK")
 
-	slackAPI = slack.New(config.SlackAccessToken)
+	slackAPI := slack.New(config.SlackAccessToken, slack.OptionAppLevelToken(config.SlackAppToken))
+	slackSocket = socketmode.New(slackAPI,
+		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
+	)
 
 	// Get the channel history
 	globalChannelHistory, err = getChannelHistory()
@@ -97,6 +104,8 @@ func init() {
 }
 
 func main() {
+	go runSocket() // Start the Slack Socket
+
 	app := gin.Default()
 	app.LoadHTMLGlob("templates/*")
 	app.Static("/static", "./static")

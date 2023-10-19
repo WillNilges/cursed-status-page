@@ -20,7 +20,7 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 			continue
 		}
 
-		msgUser, err := slackAPI.GetUserInfo(message.User)
+		msgUser, err := slackSocket.GetUserInfo(message.User)
 		if err != nil {
 			log.Println(err)
 			return updates, pinnedUpdates, err
