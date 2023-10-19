@@ -107,7 +107,7 @@ func runSocket() {
 							break
 						}
 						reaction := ev.Reaction
-						slackAPI.RemoveReaction(reaction, slack.ItemRef{
+						slackSocket.RemoveReaction(reaction, slack.ItemRef{
 							Channel:   config.SlackStatusChannelID,
 							Timestamp: ev.Item.Timestamp,
 						})
@@ -134,7 +134,7 @@ func runSocket() {
 							)
 						}
 						// Mirror the reaction on the message
-						slackAPI.AddReaction(reaction, slack.NewRefToMessage(
+						slackSocket.AddReaction(reaction, slack.NewRefToMessage(
 							config.SlackStatusChannelID,
 							ev.Item.Timestamp,
 						))
@@ -174,105 +174,7 @@ func runSocket() {
 	slackSocket.Run()
 }
 
-func eventResp() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		bodyBytes, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "error reading slack event payload: %s", err.Error())
-			return
-		}
-		event, err := slackevents.ParseEvent(bodyBytes, slackevents.OptionNoVerifyToken())
-		if err != nil {
-			c.String(http.StatusInternalServerError, "error reading slack event payload: %s", err.Error())
-			return
-		}
-		log.Printf("%s\n", event.Type)
-		switch event.Type {
-		case slackevents.URLVerification:
-			ve, ok := event.Data.(*slackevents.EventsAPIURLVerificationEvent)
-			if !ok {
-				c.String(http.StatusBadRequest, "invalid url verification event payload sent from slack")
-				return
-			}
-			c.JSON(http.StatusOK, &slackevents.ChallengeResponse{
-				Challenge: ve.Challenge,
-			})
-		case slackevents.AppRateLimited:
-			c.String(http.StatusOK, "ack")
-		case slackevents.CallbackEvent:
-			innerEvent := event.InnerEvent
-			shouldUpdate := false
-			switch ev := innerEvent.Data.(type) {
-			case *slackevents.PinAddedEvent:
-				shouldUpdate = true
-			case *slackevents.PinRemovedEvent:
-				shouldUpdate = true
-			case *slackevents.ReactionRemovedEvent:
-				if ev.User == config.SlackBotID {
-					break
-				}
-				reaction := ev.Reaction
-				slackAPI.RemoveReaction(reaction, slack.ItemRef{
-					Channel:   config.SlackStatusChannelID,
-					Timestamp: ev.Item.Timestamp,
-				})
-				shouldUpdate = true
-			case *slackevents.ReactionAddedEvent:
-				reaction := ev.Reaction
-				botMentioned, err := isBotMentioned(ev.Item.Timestamp)
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-				}
-				if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned) {
-					break
-				}
-				// If necessary, remove a conflicting reaction
-				if isRelevantReaction(reaction) {
-					clearReactions(
-						ev.Item.Timestamp,
-						[]string{
-							config.StatusOKEmoji,
-							config.StatusWarnEmoji,
-							config.StatusErrorEmoji,
-						},
-					)
-				}
-				// Mirror the reaction on the message
-				slackAPI.AddReaction(reaction, slack.NewRefToMessage(
-					config.SlackStatusChannelID,
-					ev.Item.Timestamp,
-				))
-				shouldUpdate = true
-			case *slackevents.MessageEvent:
-				// If a message mentioning us gets added or deleted, then
-				// do something
-				log.Println(ev.SubType)
-				// Check if a new message got posted to the site thread
-				if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
-					shouldUpdate = true
-				}
-			case *slackevents.AppMentionEvent:
-				shouldUpdate = true
-			default:
-				c.String(http.StatusBadRequest, "no handler for event of given type")
-			}
-			// Update our history
-			if shouldUpdate {
-				globalChannelHistory, err = getChannelHistory()
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-				}
-				globalUpdates, globalPinnedUpdates, err = buildStatusPage()
-				if err != nil {
-					c.String(http.StatusInternalServerError, err.Error())
-				}
-			}
-		default:
-			c.String(http.StatusBadRequest, "invalid event type sent from slack")
-		}
-	}
-}
-
+// FIXME: Use socketmode
 func interactionResp() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var payload slack.InteractionCallback
