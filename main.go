@@ -60,8 +60,6 @@ func init() {
 		log.Println("Couldn't load .env file")
 	}
 
-	log.Println("hello")
-
 	config.OrgName = os.Getenv("CSP_ORG_NAME")
 	config.LogoURL = os.Getenv("CSP_LOGO_URL")
 	config.FaviconURL = os.Getenv("CSP_FAVICON_URL")

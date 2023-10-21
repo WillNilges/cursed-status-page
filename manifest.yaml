@@ -1,7 +1,7 @@
 display_information:
   name: Cursed Status Page
   description: Control your status page from Slack
-  background_color: "#303462"
+  background_color: "#625e30"
 features:
   bot_user:
     display_name: Cursed Status Page
@@ -20,20 +20,24 @@ oauth_config:
       - commands
       - groups:history
       - groups:write
-      - users:read
       - reactions:read
+      - users:read
+      - reactions:write
+      - pins:read
 settings:
   event_subscriptions:
-    request_url: https://<your-url-here>/slack/event/handle
+    request_url: https://saved-ghost-summary.ngrok-free.app/slack/event/handle
     bot_events:
       - app_mention
       - message.groups
+      - pin_added
+      - pin_removed
       - reaction_added
       - reaction_removed
   interactivity:
     is_enabled: true
-    request_url: https://<your-url-here>/slack/event/interaction
+    request_url: https://saved-ghost-summary.ngrok-free.app/slack/event/interaction
   org_deploy_enabled: false
-  socket_mode_enabled: false
+  socket_mode_enabled: true
   token_rotation_enabled: false
 
