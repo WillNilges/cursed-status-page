@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/tidwall/gjson"
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -18,6 +19,10 @@ import (
 const (
 	// Callback ID
 	CSPUpdateStatusPage = "csp_update_status_page"
+	CSPSetOK            = "csp_set_ok"
+	CSPSetWarn          = "csp_set_warn"
+	CSPSetError         = "csp_set_errteamID"
+	CSPCancel           = "csp_cancel"
 )
 
 func signatureVerification(c *gin.Context) {
@@ -148,6 +153,66 @@ func runSocket() {
 						}
 					case *slackevents.AppMentionEvent:
 						shouldUpdate = true
+
+						log.Printf("Got mentioned. Timestamp is: %s. ThreadTimestamp is: %s\n", ev.TimeStamp, ev.ThreadTimeStamp)
+
+						// Create the message blocks
+						blocks := []slack.Block{
+							slack.NewSectionBlock(
+								slack.NewTextBlockObject(slack.MarkdownType, "I see you are posting a new message to the support page. What kind of alert is this? *Warning: this alert will go live immediately!*", false, false),
+								nil,
+								nil,
+							),
+							slack.NewInputBlock("pin", slack.NewTextBlockObject(slack.PlainTextType, " ", false, false), nil,
+								slack.NewCheckboxGroupsBlockElement(
+									"pin", slack.NewOptionBlockObject(
+										"pin",
+										slack.NewTextBlockObject(
+											"plain_text",
+											"Pin this message to the status page",
+											false,
+											false,
+										),
+										nil,
+									),
+								),
+							),
+							slack.NewActionBlock(
+								"",
+								slack.NewButtonBlockElement(
+									CSPSetError,
+									CSPSetError,
+									slack.NewTextBlockObject("plain_text", "🔥 Critical", true, false),
+								),
+								slack.NewButtonBlockElement(
+									CSPSetWarn,
+									CSPSetWarn,
+									slack.NewTextBlockObject("plain_text", "⚠️ Warning", true, false),
+								),
+								slack.NewButtonBlockElement(
+									CSPSetOK,
+									CSPSetOK,
+									slack.NewTextBlockObject("plain_text", "✅ OK/Info", true, false),
+								),
+								slack.NewButtonBlockElement(
+									CSPCancel,
+									CSPCancel,
+									slack.NewTextBlockObject("plain_text", "🗑️ Cancel", true, false),
+								),
+							),
+						}
+
+						//FIXME (willnilges): Seems like slack has some kind of limitation with being unable to post ephemeral messages to threads and then
+						// broadcast them to channels. So for now this is going to be non-ephemeral.
+
+						// Post the ephemeral message
+						//_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionText("Hello!", false))
+						//_, err = slackSocket.PostEphemeral(config.SlackStatusChannelID, ev.User, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
+						_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
+						if err != nil {
+							log.Printf("Error posting ephemeral message: %s", err)
+						}
+
 					default:
 						log.Println("no handler for event of given type")
 					}
@@ -180,8 +245,54 @@ func runSocket() {
 				switch callback.Type {
 				case slack.InteractionTypeBlockActions:
 					// See https://api.slack.com/apis/connections/socket-implement#button
+					// Check which button was pressed
+					for _, action := range callback.ActionCallback.BlockActions {
+						switch action.ActionID {
+						case CSPSetOK, CSPSetWarn, CSPSetError:
+							log.Printf("Block Action Detected: %s\n", action.ActionID)
+							itemRef := slack.ItemRef{
+								Channel:   callback.Channel.ID,
+								Timestamp: callback.Container.ThreadTs,
+							}
 
-					slackSocket.Debugf("button clicked!")
+							// Check if the message should be pinned
+							maybePin := gjson.Get(string(callback.RawState), "values.pin.pin.selected_options.0.value").String()
+							if maybePin == "pin" {
+								log.Println("Will pin message!")
+
+								// Get the conversation history
+								err := slackSocket.AddPin(callback.Channel.ID, itemRef)
+								if err != nil {
+									log.Println(err)
+								}
+							}
+
+							switch action.ActionID {
+							case CSPSetOK:
+								err := slackSocket.AddReaction(config.StatusOKEmoji, itemRef)
+								if err != nil {
+									// Handle the error
+									slackSocket.Debugf("Error adding reaction: %v", err)
+								}
+							case CSPSetWarn:
+								err := slackSocket.AddReaction(config.StatusWarnEmoji, itemRef)
+								if err != nil {
+									// Handle the error
+									slackSocket.Debugf("Error adding reaction: %v", err)
+								}
+							case CSPSetError:
+								err := slackSocket.AddReaction(config.StatusErrorEmoji, itemRef)
+								if err != nil {
+									// Handle the error
+									slackSocket.Debugf("Error adding reaction: %v", err)
+								}
+							case CSPCancel:
+							}
+
+							slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
+						}
+					}
+
 				case slack.InteractionTypeShortcut:
 					log.Printf("Got shortcut: %s", callback.CallbackID)
 					if callback.CallbackID == CSPUpdateStatusPage {
