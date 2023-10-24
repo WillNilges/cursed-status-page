@@ -7,6 +7,8 @@ A simple status page webserver that you control using Slack
 
 ![Static Badge](https://img.shields.io/badge/i_should_stop-writing_go-blue)
 [![Docker](https://img.shields.io/badge/docker-hub-cyan)](https://hub.docker.com/repository/docker/willnilges/cursed-status-page/general)
+[![Publish Docker Image](https://github.com/WillNilges/cursed-status-page/actions/workflows/to_docker_hub.yaml/badge.svg)](https://github.com/WillNilges/cursed-status-page/actions/workflows/to_docker_hub.yaml)
+[![Deploy NYC Mesh Status Page](https://github.com/WillNilges/cursed-status-page/actions/workflows/deploy_to_nycmesh_status.yaml/badge.svg)](https://github.com/WillNilges/cursed-status-page/actions/workflows/deploy_to_nycmesh_status.yaml)
 
 
 ## Usage
