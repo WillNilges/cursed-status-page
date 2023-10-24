@@ -238,8 +238,6 @@ func runSocket() {
 					continue
 				}
 
-				fmt.Printf("Interaction received: %+v\n", callback)
-
 				var payload interface{}
 
 				switch callback.Type {
@@ -248,7 +246,7 @@ func runSocket() {
 					// Check which button was pressed
 					for _, action := range callback.ActionCallback.BlockActions {
 						switch action.ActionID {
-						case CSPSetOK, CSPSetWarn, CSPSetError:
+						case CSPSetOK, CSPSetWarn, CSPSetError, CSPCancel:
 							log.Printf("Block Action Detected: %s\n", action.ActionID)
 							itemRef := slack.ItemRef{
 								Channel:   callback.Channel.ID,
@@ -287,9 +285,21 @@ func runSocket() {
 									slackSocket.Debugf("Error adding reaction: %v", err)
 								}
 							case CSPCancel:
+								_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.ThreadTs)
+								if err != nil {
+									log.Println(err)
+
+									_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(callback.Container.ThreadTs), slack.MsgOptionBroadcast(), slack.MsgOptionText("OK. Please remember to delete your message! I can't do it for you :(", false))
+									if err != nil {
+										log.Printf("Error posting ephemeral message: %s", err)
+									}
+								}
+							}
+							_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
+							if err != nil {
+								log.Println(err)
 							}
 
-							slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
 						}
 					}
 
