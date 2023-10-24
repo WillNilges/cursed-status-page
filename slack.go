@@ -197,7 +197,7 @@ func runSocket() {
 								slack.NewButtonBlockElement(
 									CSPCancel,
 									CSPCancel,
-									slack.NewTextBlockObject("plain_text", "🗑️ Cancel", true, false),
+									slack.NewTextBlockObject("plain_text", "❌Close", true, false),
 								),
 							),
 						}
@@ -285,6 +285,8 @@ func runSocket() {
 									slackSocket.Debugf("Error adding reaction: %v", err)
 								}
 							case CSPCancel:
+								// FIXME (willnilges): Seems like Slack won't let the bot delete a message without an admin account
+								/*
 								_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.ThreadTs)
 								if err != nil {
 									log.Println(err)
@@ -293,7 +295,7 @@ func runSocket() {
 									if err != nil {
 										log.Printf("Error posting ephemeral message: %s", err)
 									}
-								}
+								}*/
 							}
 							_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
 							if err != nil {
