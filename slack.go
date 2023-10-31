@@ -247,21 +247,20 @@ func runSocket() {
 
 							}
 
-							// Check if the message should be pinned
-							maybePin := gjson.Get(string(callback.RawState), "values.options.options.selected_options.0.value").String()
-							if maybePin == "pin" {
-								log.Println("Will pin message!")
-
-								// Get the conversation history
-								err := slackSocket.AddPin(callback.Channel.ID, itemRef)
-								if err != nil {
-									log.Println(err)
-								}
+							// Clear any old reactions
+							switch action.ActionID {
+							case CSPSetOK, CSPSetWarn, CSPSetError:
+								clearReactions(
+									callback.Container.ThreadTs,
+									[]string{
+										config.StatusOKEmoji,
+										config.StatusWarnEmoji,
+										config.StatusErrorEmoji,
+									},
+								)
 							}
 
-							// Check if the message should be forwarded to the
-							// support channel
-
+							// Add the reaction we want
 							switch action.ActionID {
 							case CSPSetOK:
 								err := slackSocket.AddReaction(config.StatusOKEmoji, itemRef)
