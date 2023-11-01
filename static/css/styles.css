@@ -9,7 +9,11 @@ a{
 	color: inherit !important;
 }
 
-footer{
+footer, nav{
     --bs-bg-opacity: 1;
-    background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity)) !important;
+    background-color: #f4f4f4 !important;
+}
+
+footer a{
+	text-decoration: none;
 }

@@ -19,10 +19,10 @@
     <link rel="icon" type="image/x-icon" href="{{.Favicon}}" />
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light py-3">
+    <nav class="navbar navbar-expand-lg py-3">
       <div class="container-fluid max-width-container">
         <img src="{{.Logo}}" width="45px" style="padding-right: 10px" />
-        <a class="navbar-brand"
+        <a class="navbar-brand" href="https://www.nycmesh.net/"
           ><strong>{{.Org}}</strong>
           <div class="vr" style="top: 0.1em; position: relative"></div>
           Status</a
@@ -41,15 +41,28 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
             <li class="nav-item">
-              <a
-                class="nav-link"
-                href="https://nycmesh.slack.com/archives/C679UKBUK"
-                >Slack</a
-              >
+              <a class="nav-link" href="https://nycmesh.net/map">Map</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="https://nycmesh.net/faq">FAQ</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="https://nycmesh.net/docs">Docs</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="https://nycmesh.net/blog">Blog</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="https://nycmesh.net/support"
-                >Support Page</a
+                >Get Support</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="https://nycmesh.net/donate">Donate</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="https://nycmesh.net/join"
+                >Get Connected</a
               >
             </li>
           </ul>
@@ -140,52 +153,163 @@
       {{end}}
       <!-- </div> -->
 
-    <div class="col text-center lead" style="padding: 20px 0 0 0;">
-      <a href="https://nycmesh.net/network-status-old/">Older History</a>
-    </div>
+      <div class="col text-center lead" style="padding: 20px 0 0 0">
+        <a href="https://nycmesh.net/network-status-old/">Older History</a>
+      </div>
     </div>
     {{end}}
 
-    <footer class="py-3 fixed-bottom bg-light" style="height: 4em">
-      <ul
-        class="nav justify-content-center"
-        style="position: relative; bottom: 0.3em"
-      >
-        <li class="nav-item">
-          <a
-            href="https://www.nycmesh.net/"
-            class="nav-link px-2 text-body-secondary"
-            >Home</a
-          >
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link text-body-secondary"
-            href="https://nycmesh.slack.com/archives/C679UKBUK"
-            >Slack</a
-          >
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link text-body-secondary"
-            href="https://nycmesh.net/support"
-            >Support Page</a
-          >
-        </li>
-
-        <li class="nav-item d-md-block d-none">
-          <a
-            href="https://github.com/willnilges/cursed-status-page"
-            class="nav-link px-2 text-body-secondary"
-            >Cursed Status Page
-            <img
-              src="/static/images/github.svg"
-              width="20px"
-              class="ml-3"
-              style="bottom: 0.15em; position: relative"
-          /></a>
-        </li>
-      </ul>
+    <footer>
+      <div class="container-fluid max-width-container py-5">
+        <div class="row">
+          <div class="col-md-3 mb-5">
+            <img src="{{.Logo}}" width="45px" style="padding-right: 10px" />
+            <a class="navbar-brand" href="https://www.nycmesh.net/"
+              ><strong>{{.Org}}</strong></a
+            >
+          </div>
+          <div class="col-md-2">
+            <h5 class="footer-heading">Community</h5>
+            <ul class="list-unstyled">
+              <li>
+                <a href="https://slack.nycmesh.net" class="text-muted">Slack</a>
+              </li>
+              <li>
+                <a href="https://meetup.com/nycmesh" class="text-muted"
+                  >Meetup</a
+                >
+              </li>
+              <li>
+                <a href="https://www.nycmesh.net/volunteer" class="text-muted"
+                  >Volunteer</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://us9.campaign-archive.com/home/?u=cf667149616fd293afa115f5a&amp;id=ebe72854f3"
+                  class="text-muted"
+                  >Newsletter</a
+                >
+              </li>
+              <li>
+                <a href="https://www.nycmesh.net/blog" class="text-muted"
+                  >Blog</a
+                >
+              </li>
+              <li>
+                <a href="https://www.nycmesh.net/coc" class="text-muted"
+                  >Code of Conduct</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="col-md-2">
+            <h5 class="footer-heading">Network</h5>
+            <ul class="list-unstyled">
+              <li>
+                <a href="https://stats.nycmesh.net" class="text-muted">Stats</a>
+              </li>
+              <li>
+                <a
+                  href="https://docs.nycmesh.net/networking/peering/"
+                  class="text-muted"
+                  >Peering</a
+                >
+              </li>
+              <li>
+                <a href="https://www.nycmesh.net/sponsors" class="text-muted"
+                  >Sponsors</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="col-md-2">
+            <h5 class="footer-heading">Resources</h5>
+            <ul class="list-unstyled">
+              <li>
+                <a href="https://www.nycmesh.net/faq" class="text-muted">FAQ</a>
+              </li>
+              <li>
+                <a href="https://docs.nycmesh.net" class="text-muted" target="_"
+                  >Docs</a
+                >
+              </li>
+              <li>
+                <a href="https://los.nycmesh.net" class="text-muted" target="_"
+                  >Line of Sight</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.nycmesh.net/presentations"
+                  class="text-muted"
+                  >Presentations</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://docs.nycmesh.net/organization/outreach/"
+                  class="text-muted"
+                  target="_"
+                  >Outreach</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.nycmesh.net/pay"
+                  class="text-muted"
+                  target="_"
+                  >Install Payment</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/WillNilges/cursed-status-page"
+                  class="text-muted"
+                  >GitHub</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="col-md-2">
+            <h5 class="footer-heading">Social</h5>
+            <ul class="list-unstyled">
+              <li>
+                <a href="https://mastodon.nycmesh.net/@mesh" class="text-muted"
+                  >Mastodon</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://bsky.app/profile/nycmesh.bsky.social"
+                  class="text-muted"
+                  >Bluesky</a
+                >
+              </li>
+              <li>
+                <a href="https://www.threads.net/@nycmesh" class="text-muted"
+                  >Threads</a
+                >
+              </li>
+              <li>
+                <a href="https://www.youtube.com/@nycmesh" class="text-muted"
+                  >YouTube</a
+                >
+              </li>
+              <li>
+                <a href="https://www.facebook.com/nycmesh" class="text-muted"
+                  >Facebook</a
+                >
+              </li>
+              <li>
+                <a href="https://www.instagram.com/nycmesh" class="text-muted"
+                  >Instagram</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </footer>
   </body>
 </html>
