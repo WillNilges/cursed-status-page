@@ -74,7 +74,7 @@
         </div>
       </div>
       {{end}} {{if .PinnedStatuses}} {{with .PinnedStatuses}}
-      <em class="text-body-secondary">Ongoing Statuses</em>
+      <em class="text-body-secondary">Current Status</em>
       <ul class="list-group">
         {{range .}}
 
@@ -114,7 +114,7 @@
       </div>
 
       {{if .StatusUpdates}}
-      <em class="text-body-secondary">Previous Statuses</em>
+      <em class="text-body-secondary">History</em>
       {{with .StatusUpdates}}
       <ul class="list-group">
         {{range .}}
@@ -139,6 +139,10 @@
       </ul>
       {{end}}
       <!-- </div> -->
+
+    <div class="col text-center lead" style="padding: 20px 0 0 0;">
+      <a href="https://nycmesh.net/network-status-old/">Older History</a>
+    </div>
     </div>
     {{end}}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -47,6 +48,19 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 	return humanReadableTimestamp
 }
 
+// ResolveChannelName retrieves the human-readable channel name from the channel ID.
+func ResolveChannelName(channelID string) (string, error) {
+	info, err := slackSocket.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID: channelID,
+		IncludeLocale: false,
+		IncludeNumMembers: false,
+	})
+	if err != nil {
+		return "", err
+	}
+	return info.Name, nil
+}
+
 func getThreadConversation(api *slack.Client, channelID string, threadTs string) (conversation []slack.Message, err error) {
 	// Get the conversation history
 	params := slack.GetConversationRepliesParameters{
@@ -73,6 +87,26 @@ func getChannelHistory() (conversation []slack.Message, err error) {
 	var history *slack.GetConversationHistoryResponse
 	history, err = slackSocket.GetConversationHistory(&params)
 	return history.Messages, err
+}
+
+func getSingleMessage(channelID string, oldest string) (message slack.Message, err error) {
+	log.Println("Fetching channel history...")
+	params := slack.GetConversationHistoryParameters{
+		ChannelID: channelID,
+		Oldest:    oldest,
+		Inclusive: true,
+		Limit:     1,
+	}
+
+	var history *slack.GetConversationHistoryResponse
+	history, err = slackSocket.GetConversationHistory(&params)
+	if err != nil {
+		return message, err
+	}
+	if len(history.Messages) == 0 {
+		return message, errors.New("No messages retrieved.")
+	}
+	return history.Messages[0], err
 }
 
 func isBotMentioned(timestamp string) (isMentioned bool, err error) {

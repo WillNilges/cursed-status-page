@@ -1,16 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"os"
 	"strings"
 
 	"github.com/tidwall/gjson"
-	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 	"github.com/slack-go/slack/socketmode"
@@ -23,58 +18,11 @@ const (
 	CSPSetWarn          = "csp_set_warn"
 	CSPSetError         = "csp_set_errteamID"
 	CSPCancel           = "csp_cancel"
+
+	CSPPin = "pin"
+
+	CSPForward = "forward"
 )
-
-func signatureVerification(c *gin.Context) {
-	verifier, err := slack.NewSecretsVerifier(c.Request.Header, os.Getenv("CSP_SLACK_SIGNING_SECRET"))
-	if err != nil {
-		c.String(http.StatusBadRequest, "error initializing signature verifier: %s", err.Error())
-		return
-	}
-	bodyBytes, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "error reading request body: %s", err.Error())
-		return
-	}
-	bodyBytesCopy := make([]byte, len(bodyBytes))
-	copy(bodyBytesCopy, bodyBytes)
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytesCopy))
-	if _, err = verifier.Write(bodyBytes); err != nil {
-		c.String(http.StatusInternalServerError, "error writing request body bytes for verification: %s", err.Error())
-		return
-	}
-	if err = verifier.Ensure(); err != nil {
-		c.String(http.StatusUnauthorized, "error verifying slack signature: %s", err.Error())
-		return
-	}
-	c.Next()
-}
-
-func installResp() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		_, errExists := c.GetQuery("error")
-		if errExists {
-			c.String(http.StatusOK, "error installing app")
-			return
-		}
-		code, codeExists := c.GetQuery("code")
-		if !codeExists {
-			c.String(http.StatusBadRequest, "missing mandatory 'code' query parameter")
-			return
-		}
-		resp, err := slack.GetOAuthV2Response(http.DefaultClient,
-			os.Getenv("CSP_SLACK_CLIENT_ID"),
-			os.Getenv("CSP_SLACK_CLIENT_SECRET"),
-			code,
-			"")
-		if err != nil {
-			c.String(http.StatusInternalServerError, "error exchanging temporary code for access token: %s", err.Error())
-			return
-		}
-
-		c.Redirect(http.StatusFound, fmt.Sprintf("slack://app?team=%s&id=%s&tab=about", resp.Team.ID, resp.AppID))
-	}
-}
 
 func runSocket() {
 	go func() {
@@ -156,6 +104,12 @@ func runSocket() {
 
 						log.Printf("Got mentioned. Timestamp is: %s. ThreadTimestamp is: %s\n", ev.TimeStamp, ev.ThreadTimeStamp)
 
+						channelName, err := ResolveChannelName(config.SlackForwardChannelID)
+						if err != nil {
+							log.Printf("Could not resolve channel name: %s\n", err)
+							break
+						}
+
 						// Create the message blocks
 						blocks := []slack.Block{
 							slack.NewSectionBlock(
@@ -163,13 +117,24 @@ func runSocket() {
 								nil,
 								nil,
 							),
-							slack.NewInputBlock("pin", slack.NewTextBlockObject(slack.PlainTextType, " ", false, false), nil,
+							slack.NewInputBlock("options", slack.NewTextBlockObject(slack.PlainTextType, " ", false, false), nil,
 								slack.NewCheckboxGroupsBlockElement(
-									"pin", slack.NewOptionBlockObject(
-										"pin",
+									"options",
+									slack.NewOptionBlockObject(
+										CSPPin,
 										slack.NewTextBlockObject(
 											"plain_text",
 											"Pin this message to the status page",
+											false,
+											false,
+										),
+										nil,
+									),
+									slack.NewOptionBlockObject(
+										CSPForward,
+										slack.NewTextBlockObject(
+											"plain_text",
+											fmt.Sprintf("Forward message to the #%s channel", channelName),
 											false,
 											false,
 										),
@@ -208,7 +173,7 @@ func runSocket() {
 						// Post the ephemeral message
 						//_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionText("Hello!", false))
 						//_, err = slackSocket.PostEphemeral(config.SlackStatusChannelID, ev.User, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
-						_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
+						_, _, err = slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
 						if err != nil {
 							log.Printf("Error posting ephemeral message: %s", err)
 						}
@@ -253,18 +218,49 @@ func runSocket() {
 								Timestamp: callback.Container.ThreadTs,
 							}
 
-							// Check if the message should be pinned
-							maybePin := gjson.Get(string(callback.RawState), "values.pin.pin.selected_options.0.value").String()
-							if maybePin == "pin" {
-								log.Println("Will pin message!")
+							selected_options := gjson.Get(string(callback.RawState), "values.options.options.selected_options").Array()
+							for i, opt := range selected_options {
+								fmt.Println(i, opt)	
 
-								// Get the conversation history
-								err := slackSocket.AddPin(callback.Channel.ID, itemRef)
-								if err != nil {
-									log.Println(err)
+								option := gjson.Get(opt.String(), "value").String()
+								switch option {
+								case CSPPin:
+									log.Println("Will pin message")
+
+									// Get the conversation history
+									err := slackSocket.AddPin(callback.Channel.ID, itemRef)
+									if err != nil {
+										log.Println(err)
+									}
+								case CSPForward:
+									log.Println("Will forward message")
+
+									messageText, err := getSingleMessage(callback.Channel.ID, callback.Container.ThreadTs)
+									if err != nil {
+										log.Println(err)
+										break
+									}
+
+									_, _, err = slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(messageText.Text, false))
+									
 								}
+
 							}
 
+							// Clear any old reactions
+							switch action.ActionID {
+							case CSPSetOK, CSPSetWarn, CSPSetError:
+								clearReactions(
+									callback.Container.ThreadTs,
+									[]string{
+										config.StatusOKEmoji,
+										config.StatusWarnEmoji,
+										config.StatusErrorEmoji,
+									},
+								)
+							}
+
+							// Add the reaction we want
 							switch action.ActionID {
 							case CSPSetOK:
 								err := slackSocket.AddReaction(config.StatusOKEmoji, itemRef)

@@ -19,6 +19,7 @@ type Config struct {
 	SlackAccessToken     string
 	SlackAppToken        string
 	SlackStatusChannelID string
+	SlackForwardChannelID string
 	SlackBotID           string
 	SlackTruncation      string
 
@@ -68,6 +69,7 @@ func init() {
 	config.SlackAccessToken = os.Getenv("CSP_SLACK_ACCESS_TOKEN")
 	config.SlackAppToken = os.Getenv("CSP_SLACK_APP_TOKEN")
 	config.SlackStatusChannelID = os.Getenv("CSP_SLACK_STATUS_CHANNEL")
+	config.SlackForwardChannelID = os.Getenv("CSP_SLACK_FORWARD_CHANNEL")
 	config.SlackTruncation = os.Getenv("CSP_SLACK_TRUNCATION")
 
 	config.StatusNeutralColor = os.Getenv("CSP_CARD_NEUTRAL_COLOR")
