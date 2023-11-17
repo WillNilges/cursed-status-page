@@ -19,4 +19,4 @@ jobs:
         #config: ${{ secrets.CONFIG }} # ssh_config; optional
         if_key_exists: fail # replace / ignore / fail; optional (defaults to fail)
     - name: Pull new Docker image
-      run: ssh ubuntu@status.mesh.nycmesh.net "cd /home/ubuntu/cursed-status-page-live && bash update_and_restart.sh"
+      run: ssh root@status.mesh.nycmesh.net "cd /root/cursed-status-page-live && bash update_and_restart.sh"
