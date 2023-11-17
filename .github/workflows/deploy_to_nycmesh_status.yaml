@@ -13,9 +13,9 @@ jobs:
     - name: Install SSH key
       uses: shimataro/ssh-key-action@v2
       with:
-        key: ${{ secrets.ANDY_BOX_KEY }}
+        key: ${{ secrets.MESH_STATUS_BOX_KEY }}
         name: id_ed25519 # optional
-        known_hosts: ${{ secrets.ANDY_KNOWN_HOSTS }}
+        known_hosts: ${{ secrets.MESH_STATUS_BOX_KNOWN_HOSTS }}
         #config: ${{ secrets.CONFIG }} # ssh_config; optional
         if_key_exists: fail # replace / ignore / fail; optional (defaults to fail)
     - name: Pull new Docker image
