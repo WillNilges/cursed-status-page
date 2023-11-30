@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/slack-go/slack"
@@ -23,6 +24,20 @@ const (
 
 	CSPForward = "forward"
 )
+
+type CspSlackClient struct {
+	slackAPI *slack.Client
+	slackSocket *socketmode.Client
+}
+
+func newCspSlackClient() CspSlackClient {
+	s := CspSlackClient{}
+	s.slackAPI = slack.New(config.SlackAccessToken, slack.OptionAppLevelToken(config.SlackAppToken))
+	s.slackSocket = socketmode.New(s.slackAPI,
+		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
+	)
+	return s
+}
 
 func runSocket() {
 	go func() {

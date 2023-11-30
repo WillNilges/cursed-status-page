@@ -37,24 +37,19 @@ type Config struct {
 	HelpMessage    string
 }
 
-type StatusUpdate struct {
-	Text            string
-	SentBy          string
-	TimeStamp       string
-	BackgroundClass string
-	IconFilename    string
-}
 
 // Useful global variables
 var config Config
 
 var globalChannelHistory []slack.Message
 
-var globalUpdates []StatusUpdate
-var globalPinnedUpdates []StatusUpdate
+//var globalUpdates []StatusUpdate
+//var globalPinnedUpdates []StatusUpdate
 
-var slackAPI *slack.Client
-var slackSocket *socketmode.Client
+//var slackAPI *slack.Client
+//var slackSocket *socketmode.Client
+
+var cspSlackClient CspSlackClient
 
 func init() {
 	// Load environment variables one way or another
@@ -90,10 +85,7 @@ func init() {
 
 	flag.Parse()
 
-	slackAPI := slack.New(config.SlackAccessToken, slack.OptionAppLevelToken(config.SlackAppToken))
-	slackSocket = socketmode.New(slackAPI,
-		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
-	)
+	cspSlackClient = newCspSlackClient()
 
 	// Get the channel history
 	globalChannelHistory, err = getChannelHistory()
@@ -102,7 +94,7 @@ func init() {
 	}
 
 	// Get some deets we'll need from the slack API
-	authTestResponse, err := slackAPI.AuthTest()
+	authTestResponse, err := cspSlackClient.slackAPI.AuthTest()
 	config.SlackBotID = authTestResponse.UserID
 
 	// Send out reminders about pinned messages.
@@ -110,16 +102,13 @@ func init() {
 		sendReminders()
 		os.Exit(0)
 	}
-
-	// Initialize the actual data we need for the status page
-	globalUpdates, globalPinnedUpdates, err = buildStatusPage()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func main() {
-	go runSocket() // Start the Slack Socket
+	go cspSlackClient.runSocket() // Start the Slack Socket
+
+	// Initialize the actual data we need for the status page
+	cspWebPage := newCspWebPage(cspSlackClient)
 
 	app := gin.Default()
 	app.LoadHTMLGlob("templates/*")

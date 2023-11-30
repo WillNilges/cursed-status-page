@@ -8,9 +8,31 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/slack-go/slack/socketmode"
 )
 
-func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, err error) {
+type StatusUpdate struct {
+	Text            string
+	SentBy          string
+	TimeStamp       string
+	BackgroundClass string
+	IconFilename    string
+}
+
+type CspWebPage struct {
+	updates []StatusUpdate
+	pinnedUpdates []StatusUpdate
+	slackSocket *socketmode.Client
+}
+
+func newCspWebPage(slackSocket *socketmode.Client) CspWebPage {
+	p := CspWebPage {}
+	p.slackSocket = slackSocket
+	p.build()
+	return p
+}
+
+func (p *CspWebPage) build() (err error) {
 	log.Println("Building Status Page...")
 	for _, message := range globalChannelHistory {
 		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
@@ -20,10 +42,10 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 			continue
 		}
 
-		msgUser, err := slackSocket.GetUserInfo(message.User)
+		msgUser, err := p.slackSocket.GetUserInfo(message.User)
 		if err != nil {
 			log.Println(err)
-			return updates, pinnedUpdates, err
+			return err
 		}
 		realName := msgUser.RealName
 		var update StatusUpdate
@@ -54,23 +76,23 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 
 		}
 		if len(message.PinnedTo) > 0 {
-			pinnedUpdates = append(pinnedUpdates, update)
+			p.pinnedUpdates = append(p.pinnedUpdates, update)
 		} else {
-			updates = append(updates, update)
+			p.updates = append(p.updates, update)
 		}
 	}
 
-	return updates, pinnedUpdates, nil
+	return nil
 }
 
-func statusPage(c *gin.Context) {
+func (p *CspWebPage) render(c *gin.Context) {
 	c.HTML(
 		http.StatusOK,
 		"index.html",
 		gin.H{
 			"HelpMessage":    template.HTML(config.HelpMessage),
-			"PinnedStatuses": globalPinnedUpdates,
-			"StatusUpdates":  globalUpdates,
+			"PinnedStatuses": p.pinnedUpdates,
+			"StatusUpdates":  p.updates,
 			"Org":            config.OrgName,
 			"Logo":           config.LogoURL,
 			"Favicon":        config.FaviconURL,
