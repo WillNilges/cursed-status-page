@@ -39,7 +39,7 @@ func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, er
 				continue
 			}
 
-		// Use the first reaction sent by the bot that we find
+			// Use the first reaction sent by the bot that we find
 			switch reaction.Name {
 			case config.StatusOKEmoji:
 				update.BackgroundClass = "list-group-item-success"

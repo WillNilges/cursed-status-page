@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 
@@ -84,6 +85,10 @@ func init() {
 	config.NominalSentBy = os.Getenv("CSP_NOMINAL_SENT_BY")
 	config.HelpMessage = os.Getenv("CSP_HELP_LINK")
 
+	pinReminders := flag.Bool("send-reminders", false, "Check for pinned items and send a reminder if it's been longer than a day.")
+
+	flag.Parse()
+
 	slackAPI := slack.New(config.SlackAccessToken, slack.OptionAppLevelToken(config.SlackAppToken))
 	slackSocket = socketmode.New(slackAPI,
 		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
@@ -95,9 +100,16 @@ func init() {
 		log.Fatal(err)
 	}
 
+
 	// Get some deets we'll need from the slack API
 	authTestResponse, err := slackAPI.AuthTest()
 	config.SlackBotID = authTestResponse.UserID
+
+	// Send out reminders about pinned messages.
+	if *pinReminders {
+		sendReminders()
+		os.Exit(0)
+	} 
 
 	// Initialize the actual data we need for the status page
 	globalUpdates, globalPinnedUpdates, err = buildStatusPage()
