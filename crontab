@@ -1,0 +1,1 @@
+0 17 * * * /cursed-status-page -send-reminders >> /var/log/cron.log 2>&1
