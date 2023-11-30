@@ -8,31 +8,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/slack-go/slack/socketmode"
 )
 
-type StatusUpdate struct {
-	Text            string
-	SentBy          string
-	TimeStamp       string
-	BackgroundClass string
-	IconFilename    string
-}
-
-type CspWebPage struct {
-	updates []StatusUpdate
-	pinnedUpdates []StatusUpdate
-	slackSocket *socketmode.Client
-}
-
-func newCspWebPage(slackSocket *socketmode.Client) CspWebPage {
-	p := CspWebPage {}
-	p.slackSocket = slackSocket
-	p.build()
-	return p
-}
-
-func (p *CspWebPage) build() (err error) {
+func buildStatusPage() (updates []StatusUpdate, pinnedUpdates []StatusUpdate, err error) {
 	log.Println("Building Status Page...")
 	for _, message := range globalChannelHistory {
 		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
@@ -42,10 +20,10 @@ func (p *CspWebPage) build() (err error) {
 			continue
 		}
 
-		msgUser, err := p.slackSocket.GetUserInfo(message.User)
+		msgUser, err := slackSocket.GetUserInfo(message.User)
 		if err != nil {
 			log.Println(err)
-			return err
+			return updates, pinnedUpdates, err
 		}
 		realName := msgUser.RealName
 		var update StatusUpdate
@@ -76,23 +54,23 @@ func (p *CspWebPage) build() (err error) {
 
 		}
 		if len(message.PinnedTo) > 0 {
-			p.pinnedUpdates = append(p.pinnedUpdates, update)
+			pinnedUpdates = append(pinnedUpdates, update)
 		} else {
-			p.updates = append(p.updates, update)
+			updates = append(updates, update)
 		}
 	}
 
-	return nil
+	return updates, pinnedUpdates, nil
 }
 
-func (p *CspWebPage) render(c *gin.Context) {
+func statusPage(c *gin.Context) {
 	c.HTML(
 		http.StatusOK,
 		"index.html",
 		gin.H{
 			"HelpMessage":    template.HTML(config.HelpMessage),
-			"PinnedStatuses": p.pinnedUpdates,
-			"StatusUpdates":  p.updates,
+			"PinnedStatuses": globalPinnedUpdates,
+			"StatusUpdates":  globalUpdates,
 			"Org":            config.OrgName,
 			"Logo":           config.LogoURL,
 			"Favicon":        config.FaviconURL,
