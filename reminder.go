@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/slack-go/slack"
 )
 
@@ -39,7 +40,20 @@ func sendReminders() error {
 			ts := slackTSToHumanTime(message.Timestamp)
 			status := getPinnedMessageStatus(message.Reactions)
 
+			// Don't bother if the message hasn't been up longer than a day
+			// XXX: I feel like this is an unnecessary distinction
+			/*
+			t,  err := time.Parse("2006-01-02 15:04:05 MST", ts)
+			if err == nil {
+				if time.Since(t) < 24 * time.Hour {
+					fmt.Println("Message not pinned for long enough. Ignoring.")
+					continue
+				}
+			}
+			*/
+
 			// Optionally send individual reminders.
+			// XXX: This seems like it would be too noisy.
 			/*
 			reminderText := fmt.Sprintf(
 				"Hey, <@%s>, this message was posted on %s. It might be time to unpin it.",
@@ -69,6 +83,7 @@ func sendReminders() error {
 				return err
 			}
 			pinnedMessageLinks = append(pinnedMessageLinks, ReminderInfo{permalink, ts, status})
+			fmt.Println("Found message.")
 		}
 	}
 
@@ -78,7 +93,7 @@ func sendReminders() error {
 	}
 
 	// Send summary message
-	summaryMessage := fmt.Sprintln("<!here> Hello, Admins.\nThe following messages are currently pinned to the status page.")
+	summaryMessage := fmt.Sprintln("<!here> Hello, Admins.\nThe following messages have been pined for >1 day.")
 	for _, m := range pinnedMessageLinks {
 		var parsedStatus string
 		if m.status == "" {
@@ -99,5 +114,7 @@ func sendReminders() error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("success.")
 	return nil
 }
