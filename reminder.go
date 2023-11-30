@@ -7,8 +7,8 @@ import (
 )
 
 type ReminderInfo struct {
-	link string
-	ts string
+	link   string
+	ts     string
 	status string
 }
 
@@ -29,7 +29,7 @@ func getPinnedMessageStatus(reactions []slack.ItemReaction) string {
 			return config.StatusErrorEmoji
 		}
 	}
-	return "" 
+	return ""
 }
 
 func sendReminders() error {
@@ -43,38 +43,37 @@ func sendReminders() error {
 			// Don't bother if the message hasn't been up longer than a day
 			// XXX: I feel like this is an unnecessary distinction
 			/*
-			t,  err := time.Parse("2006-01-02 15:04:05 MST", ts)
-			if err == nil {
-				if time.Since(t) < 24 * time.Hour {
-					fmt.Println("Message not pinned for long enough. Ignoring.")
-					continue
+				t,  err := time.Parse("2006-01-02 15:04:05 MST", ts)
+				if err == nil {
+					if time.Since(t) < 24 * time.Hour {
+						fmt.Println("Message not pinned for long enough. Ignoring.")
+						continue
+					}
 				}
-			}
 			*/
 
 			// Optionally send individual reminders.
 			// XXX: This seems like it would be too noisy.
 			/*
-			reminderText := fmt.Sprintf(
-				"Hey, <@%s>, this message was posted on %s. It might be time to unpin it.",
-				message.User,
-				ts,
-			)
+				reminderText := fmt.Sprintf(
+					"Hey, <@%s>, this message was posted on %s. It might be time to unpin it.",
+					message.User,
+					ts,
+				)
 			*/
 
-			
 			/*
-			_, _, err := slackSocket.PostMessage(
-				config.SlackStatusChannelID,
-				slack.MsgOptionTS(message.Timestamp),
-				slack.MsgOptionText(reminderText, false),
-			)
-			if err != nil {
-				return err
-			}
+				_, _, err := slackSocket.PostMessage(
+					config.SlackStatusChannelID,
+					slack.MsgOptionTS(message.Timestamp),
+					slack.MsgOptionText(reminderText, false),
+				)
+				if err != nil {
+					return err
+				}
 			*/
 
-			// Grab permalink to send final reminder message.	
+			// Grab permalink to send final reminder message.
 			permalink, err := slackSocket.GetPermalink(&slack.PermalinkParameters{
 				Channel: config.SlackStatusChannelID,
 				Ts:      message.Timestamp,

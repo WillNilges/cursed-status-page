@@ -16,13 +16,13 @@ type Config struct {
 	LogoURL    string
 	FaviconURL string
 
-	SlackTeamID          string
-	SlackAccessToken     string
-	SlackAppToken        string
-	SlackStatusChannelID string
+	SlackTeamID           string
+	SlackAccessToken      string
+	SlackAppToken         string
+	SlackStatusChannelID  string
 	SlackForwardChannelID string
-	SlackBotID           string
-	SlackTruncation      string
+	SlackBotID            string
+	SlackTruncation       string
 
 	StatusNeutralColor string
 	StatusOKColor      string
@@ -38,13 +38,14 @@ type Config struct {
 }
 
 type StatusUpdate struct {
-	Text       string
-	SentBy     string
-	TimeStamp  string
+	Text            string
+	SentBy          string
+	TimeStamp       string
 	BackgroundClass string
-	IconFilename string
+	IconFilename    string
 }
 
+// Useful global variables
 var config Config
 
 var globalChannelHistory []slack.Message
@@ -100,7 +101,6 @@ func init() {
 		log.Fatal(err)
 	}
 
-
 	// Get some deets we'll need from the slack API
 	authTestResponse, err := slackAPI.AuthTest()
 	config.SlackBotID = authTestResponse.UserID
@@ -109,7 +109,7 @@ func init() {
 	if *pinReminders {
 		sendReminders()
 		os.Exit(0)
-	} 
+	}
 
 	// Initialize the actual data we need for the status page
 	globalUpdates, globalPinnedUpdates, err = buildStatusPage()

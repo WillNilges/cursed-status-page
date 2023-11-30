@@ -5,10 +5,10 @@ import (
 	"log"
 	"strings"
 
-	"github.com/tidwall/gjson"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 	"github.com/slack-go/slack/socketmode"
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -220,7 +220,7 @@ func runSocket() {
 
 							selected_options := gjson.Get(string(callback.RawState), "values.options.options.selected_options").Array()
 							for i, opt := range selected_options {
-								fmt.Println(i, opt)	
+								fmt.Println(i, opt)
 
 								option := gjson.Get(opt.String(), "value").String()
 								switch option {
@@ -242,7 +242,7 @@ func runSocket() {
 									}
 
 									_, _, err = slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(messageText.Text, false))
-									
+
 								}
 
 							}
@@ -283,15 +283,15 @@ func runSocket() {
 							case CSPCancel:
 								// FIXME (willnilges): Seems like Slack won't let the bot delete a message without an admin account
 								/*
-								_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.ThreadTs)
-								if err != nil {
-									log.Println(err)
-
-									_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(callback.Container.ThreadTs), slack.MsgOptionBroadcast(), slack.MsgOptionText("OK. Please remember to delete your message! I can't do it for you :(", false))
+									_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.ThreadTs)
 									if err != nil {
-										log.Printf("Error posting ephemeral message: %s", err)
-									}
-								}*/
+										log.Println(err)
+
+										_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(callback.Container.ThreadTs), slack.MsgOptionBroadcast(), slack.MsgOptionText("OK. Please remember to delete your message! I can't do it for you :(", false))
+										if err != nil {
+											log.Printf("Error posting ephemeral message: %s", err)
+										}
+									}*/
 							}
 							_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
 							if err != nil {

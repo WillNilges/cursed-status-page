@@ -51,8 +51,8 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 // ResolveChannelName retrieves the human-readable channel name from the channel ID.
 func ResolveChannelName(channelID string) (string, error) {
 	info, err := slackSocket.GetConversationInfo(&slack.GetConversationInfoInput{
-		ChannelID: channelID,
-		IncludeLocale: false,
+		ChannelID:         channelID,
+		IncludeLocale:     false,
 		IncludeNumMembers: false,
 	})
 	if err != nil {
