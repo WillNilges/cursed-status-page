@@ -78,7 +78,7 @@ func sendReminders() error {
 	}
 
 	// Send summary message
-	summaryMessage := fmt.Sprintln("<!here> Hello, Admins.\nThe following messages have been pinned for >1 day.")
+	summaryMessage := fmt.Sprintln("<!here> Hello, Admins.\nThe following messages are currently pinned to the status page.")
 	for _, m := range pinnedMessageLinks {
 		var parsedStatus string
 		if m.status == "" {
