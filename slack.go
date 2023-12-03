@@ -124,64 +124,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 				log.Printf("Could not resolve channel name: %s\n", err)
 				break
 			}
-
-			// Create the message blocks
-			blocks := []slack.Block{
-				slack.NewSectionBlock(
-					slack.NewTextBlockObject(slack.MarkdownType, "I see you are posting a new message to the support page. What kind of alert is this? *Warning: this alert will go live immediately!*", false, false),
-					nil,
-					nil,
-				),
-				slack.NewInputBlock("options", slack.NewTextBlockObject(slack.PlainTextType, " ", false, false), nil,
-					slack.NewCheckboxGroupsBlockElement(
-						"options",
-						slack.NewOptionBlockObject(
-							CSPPin,
-							slack.NewTextBlockObject(
-								"plain_text",
-								"Pin this message to the status page",
-								false,
-								false,
-							),
-							nil,
-						),
-						slack.NewOptionBlockObject(
-							CSPForward,
-							slack.NewTextBlockObject(
-								"plain_text",
-								fmt.Sprintf("Forward message to the #%s channel", channelName),
-								false,
-								false,
-							),
-							nil,
-						),
-					),
-				),
-				slack.NewActionBlock(
-					"",
-					slack.NewButtonBlockElement(
-						CSPSetError,
-						CSPSetError,
-						slack.NewTextBlockObject("plain_text", "🔥 Critical", true, false),
-					),
-					slack.NewButtonBlockElement(
-						CSPSetWarn,
-						CSPSetWarn,
-						slack.NewTextBlockObject("plain_text", "⚠️ Warning", true, false),
-					),
-					slack.NewButtonBlockElement(
-						CSPSetOK,
-						CSPSetOK,
-						slack.NewTextBlockObject("plain_text", "✅ OK/Info", true, false),
-					),
-					slack.NewButtonBlockElement(
-						CSPCancel,
-						CSPCancel,
-						slack.NewTextBlockObject("plain_text", "❌Close", true, false),
-					),
-				),
-			}
-
+			blocks := createUpdateResponseMsg(channelName) 
 			//FIXME (willnilges): Seems like slack has some kind of limitation with being unable to post ephemeral messages to threads and then
 			// broadcast them to channels. So for now this is going to be non-ephemeral.
 
