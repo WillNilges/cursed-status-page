@@ -7,8 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/socketmode"
 )
 
 type Config struct {
@@ -37,24 +35,8 @@ type Config struct {
 	HelpMessage    string
 }
 
-type StatusUpdate struct {
-	Text            string
-	SentBy          string
-	TimeStamp       string
-	BackgroundClass string
-	IconFilename    string
-}
-
 // Useful global variables
 var config Config
-
-var globalChannelHistory []slack.Message
-
-var globalUpdates []StatusUpdate
-var globalPinnedUpdates []StatusUpdate
-
-var slackAPI *slack.Client
-var slackSocket *socketmode.Client
 
 func init() {
 	// Load environment variables one way or another
@@ -87,45 +69,30 @@ func init() {
 	config.HelpMessage = os.Getenv("CSP_HELP_LINK")
 
 	pinReminders := flag.Bool("send-reminders", false, "Check for pinned items and send a reminder if it's been longer than a day.")
-
 	flag.Parse()
 
-	slackAPI := slack.New(config.SlackAccessToken, slack.OptionAppLevelToken(config.SlackAppToken))
-	slackSocket = socketmode.New(slackAPI,
-		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
-	)
-
-	// Get the channel history
-	globalChannelHistory, err = getChannelHistory()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Get some deets we'll need from the slack API
-	authTestResponse, err := slackAPI.AuthTest()
-	config.SlackBotID = authTestResponse.UserID
-
-	// Send out reminders about pinned messages.
 	if *pinReminders {
-		sendReminders()
+		csp, err := NewCSPSlack()
+		if err != nil {
+			log.Fatalf("Could not set up new CSPSlack service. %s", err)
+		}
+		err = csp.SendReminders()
 		os.Exit(0)
-	}
-
-	// Initialize the actual data we need for the status page
-	globalUpdates, globalPinnedUpdates, err = buildStatusPage()
-	if err != nil {
-		log.Fatal(err)
 	}
 }
 
 func main() {
-	go runSocket() // Start the Slack Socket
+	csp, err := NewCSPSlack()
+	if err != nil {
+		log.Fatalf("Could not set up new CSPSlack service. %s", err)
+	}
+	go csp.Run() // Start the Slack Socket
 
 	app := gin.Default()
 	app.LoadHTMLGlob("templates/*")
 	app.Static("/static", "./static")
 
-	app.GET("/", statusPage)
+	app.GET("/", csp.page.statusPage)
 	app.GET("/health", health)
 
 	_ = app.Run()

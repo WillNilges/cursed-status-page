@@ -12,33 +12,13 @@ type ReminderInfo struct {
 	status string
 }
 
-func getPinnedMessageStatus(reactions []slack.ItemReaction) string {
-	for _, reaction := range reactions {
-		// Only take action on our reactions
-		if botReaction := stringInSlice(reaction.Users, config.SlackBotID); !botReaction {
-			continue
-		}
-
-		// Use the first reaction sent by the bot that we find
-		switch reaction.Name {
-		case config.StatusOKEmoji:
-			return config.StatusOKEmoji
-		case config.StatusWarnEmoji:
-			return config.StatusWarnEmoji
-		case config.StatusErrorEmoji:
-			return config.StatusErrorEmoji
-		}
-	}
-	return ""
-}
-
-func sendReminders() error {
+func (app *CSPSlack) SendReminders() error {
 	fmt.Println("Sending unpin reminders...")
 	var pinnedMessageLinks []ReminderInfo
-	for _, message := range globalChannelHistory {
+	for _, message := range app.channelHistory {
 		if len(message.PinnedTo) > 0 {
 			ts := slackTSToHumanTime(message.Timestamp)
-			status := getPinnedMessageStatus(message.Reactions)
+			status := GetPinnedMessageStatus(message.Reactions)
 
 			// Don't bother if the message hasn't been up longer than a day
 			// XXX: I feel like this is an unnecessary distinction
@@ -74,7 +54,7 @@ func sendReminders() error {
 			*/
 
 			// Grab permalink to send final reminder message.
-			permalink, err := slackSocket.GetPermalink(&slack.PermalinkParameters{
+			permalink, err := app.slackSocket.GetPermalink(&slack.PermalinkParameters{
 				Channel: config.SlackStatusChannelID,
 				Ts:      message.Timestamp,
 			})
@@ -106,7 +86,7 @@ func sendReminders() error {
 
 	summaryMessage += fmt.Sprintf("It might be time to unpin them if they are no longer relevant.")
 
-	_, _, err := slackSocket.PostMessage(
+	_, _, err := app.slackSocket.PostMessage(
 		config.SlackStatusChannelID,
 		slack.MsgOptionText(summaryMessage, false),
 	)

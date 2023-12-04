@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/slack-go/slack"
@@ -24,10 +25,45 @@ const (
 	CSPForward = "forward"
 )
 
-func runSocket() {
+type CSPSlack struct {
+	slackAPI *slack.Client
+	slackSocket *socketmode.Client
+
+	channelHistory []slack.Message
+
+	shouldUpdate bool
+	
+	page CSPPage
+}
+
+func NewCSPSlack() (app CSPSlack, err error) {
+	app.slackAPI = slack.New(config.SlackAccessToken, slack.OptionAppLevelToken(config.SlackAppToken))
+	app.slackSocket = socketmode.New(app.slackAPI,
+		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
+	)
+
+	// Get the channel history
+	app.getChannelHistory()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Get some deets we'll need from the slack API
+	authTestResponse, err := app.slackAPI.AuthTest()
+	config.SlackBotID = authTestResponse.UserID
+
+	// Initialize the actual data we need for the status page
+	err = app.BuildStatusPage()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return app, nil
+}
+
+func (app *CSPSlack) Run() {
 	go func() {
-		for evt := range slackSocket.Events {
-			e := CSPSlackEvtHandler{evt}
+		for evt := range app.slackSocket.Events {
+			e := CSPSlackEvtHandler{app, evt}
 			switch evt.Type {
 			case socketmode.EventTypeConnecting:
 				fmt.Println("Connecting to Slack with Socket Mode...")
@@ -41,12 +77,28 @@ func runSocket() {
 				e.handleInteractiveEvent()
 
 			}
+
+			// If necessary, sync our cached Slack messages
+			// and re-build the page history
+			if app.shouldUpdate {
+				var err error
+				err = app.getChannelHistory()
+				if err != nil {
+					log.Println(err.Error())
+				}
+				err = app.BuildStatusPage()
+				if err != nil {
+					log.Println(err.Error())
+				}
+				app.shouldUpdate = false
+			}
 		}
 	}()
-	slackSocket.Run()
+	app.slackSocket.Run()
 }
 
 type CSPSlackEvtHandler struct {
+	*CSPSlack
 	evt socketmode.Event
 }
 
@@ -58,30 +110,29 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 	}
 	fmt.Printf("Event received: %+v\n", eventsAPIEvent)
 
-	slackSocket.Ack(*h.evt.Request)
+	h.slackSocket.Ack(*h.evt.Request)
 
 	switch eventsAPIEvent.Type {
 	case slackevents.CallbackEvent:
-		shouldUpdate := false
 		innerEvent := eventsAPIEvent.InnerEvent
 		switch ev := innerEvent.Data.(type) {
 		case *slackevents.PinAddedEvent:
-			shouldUpdate = true
+			h.shouldUpdate = true
 		case *slackevents.PinRemovedEvent:
-			shouldUpdate = true
+			h.shouldUpdate = true
 		case *slackevents.ReactionRemovedEvent:
 			if ev.User == config.SlackBotID {
 				break
 			}
 			reaction := ev.Reaction
-			slackSocket.RemoveReaction(reaction, slack.ItemRef{
+			h.slackSocket.RemoveReaction(reaction, slack.ItemRef{
 				Channel:   config.SlackStatusChannelID,
 				Timestamp: ev.Item.Timestamp,
 			})
-			shouldUpdate = true
+			h.shouldUpdate = true
 		case *slackevents.ReactionAddedEvent:
 			reaction := ev.Reaction
-			botMentioned, err := isBotMentioned(ev.Item.Timestamp)
+			botMentioned, err := h.isBotMentioned(ev.Item.Timestamp)
 			if err != nil {
 				log.Println(err)
 				break
@@ -91,7 +142,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			}
 			// If necessary, remove a conflicting reaction
 			if isRelevantReaction(reaction) {
-				clearReactions(
+				h.clearReactions(
 					ev.Item.Timestamp,
 					[]string{
 						config.StatusOKEmoji,
@@ -101,37 +152,37 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 				)
 			}
 			// Mirror the reaction on the message
-			slackSocket.AddReaction(reaction, slack.NewRefToMessage(
+			h.slackSocket.AddReaction(reaction, slack.NewRefToMessage(
 				config.SlackStatusChannelID,
 				ev.Item.Timestamp,
 			))
-			shouldUpdate = true
+			h.shouldUpdate = true
 		case *slackevents.MessageEvent:
 			// If a message mentioning us gets added or deleted, then
 			// do something
 			log.Println(ev.SubType)
 			// Check if a new message got posted to the site thread
 			if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
-				shouldUpdate = true
+				h.shouldUpdate = true
 			}
 		case *slackevents.AppMentionEvent:
-			shouldUpdate = true
+			h.shouldUpdate = true
 
 			log.Printf("Got mentioned. Timestamp is: %s. ThreadTimestamp is: %s\n", ev.TimeStamp, ev.ThreadTimeStamp)
 
-			channelName, err := ResolveChannelName(config.SlackForwardChannelID)
+			channelName, err := h.resolveChannelName(config.SlackForwardChannelID)
 			if err != nil {
 				log.Printf("Could not resolve channel name: %s\n", err)
 				break
 			}
-			blocks := createUpdateResponseMsg(channelName) 
+			blocks := CreateUpdateResponseMsg(channelName) 
 			//FIXME (willnilges): Seems like slack has some kind of limitation with being unable to post ephemeral messages to threads and then
 			// broadcast them to channels. So for now this is going to be non-ephemeral.
 
 			// Post the ephemeral message
 			//_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionText("Hello!", false))
 			//_, err = slackSocket.PostEphemeral(config.SlackStatusChannelID, ev.User, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
-			_, _, err = slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
+			_, _, err = h.slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
 			if err != nil {
 				log.Printf("Error posting ephemeral message: %s", err)
 			}
@@ -139,20 +190,8 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 		default:
 			log.Println("no handler for event of given type")
 		}
-		// Update our history
-		if shouldUpdate {
-			var err error
-			globalChannelHistory, err = getChannelHistory()
-			if err != nil {
-				log.Println(err.Error())
-			}
-			globalUpdates, globalPinnedUpdates, err = buildStatusPage()
-			if err != nil {
-				log.Println(err.Error())
-			}
-		}
 	default:
-		slackSocket.Debugf("unsupported Events API event received")
+		h.slackSocket.Debugf("unsupported Events API event received")
 	}
 }
 
@@ -188,20 +227,20 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 						log.Println("Will pin message")
 
 						// Get the conversation history
-						err := slackSocket.AddPin(callback.Channel.ID, itemRef)
+						err := h.slackSocket.AddPin(callback.Channel.ID, itemRef)
 						if err != nil {
 							log.Println(err)
 						}
 					case CSPForward:
 						log.Println("Will forward message")
 
-						messageText, err := getSingleMessage(callback.Channel.ID, callback.Container.ThreadTs)
+						messageText, err := h.getSingleMessage(callback.Channel.ID, callback.Container.ThreadTs)
 						if err != nil {
 							log.Println(err)
 							break
 						}
 
-						_, _, err = slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(messageText.Text, false))
+						_, _, err = h.slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(messageText.Text, false))
 
 					}
 
@@ -210,7 +249,7 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 				// Clear any old reactions
 				switch action.ActionID {
 				case CSPSetOK, CSPSetWarn, CSPSetError:
-					clearReactions(
+					h.clearReactions(
 						callback.Container.ThreadTs,
 						[]string{
 							config.StatusOKEmoji,
@@ -223,22 +262,22 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 				// Add the reaction we want
 				switch action.ActionID {
 				case CSPSetOK:
-					err := slackSocket.AddReaction(config.StatusOKEmoji, itemRef)
+					err := h.slackSocket.AddReaction(config.StatusOKEmoji, itemRef)
 					if err != nil {
 						// Handle the error
-						slackSocket.Debugf("Error adding reaction: %v", err)
+						h.slackSocket.Debugf("Error adding reaction: %v", err)
 					}
 				case CSPSetWarn:
-					err := slackSocket.AddReaction(config.StatusWarnEmoji, itemRef)
+					err := h.slackSocket.AddReaction(config.StatusWarnEmoji, itemRef)
 					if err != nil {
 						// Handle the error
-						slackSocket.Debugf("Error adding reaction: %v", err)
+						h.slackSocket.Debugf("Error adding reaction: %v", err)
 					}
 				case CSPSetError:
-					err := slackSocket.AddReaction(config.StatusErrorEmoji, itemRef)
+					err := h.slackSocket.AddReaction(config.StatusErrorEmoji, itemRef)
 					if err != nil {
 						// Handle the error
-						slackSocket.Debugf("Error adding reaction: %v", err)
+						h.slackSocket.Debugf("Error adding reaction: %v", err)
 					}
 				case CSPCancel:
 					// FIXME (willnilges): Seems like Slack won't let the bot delete a message without an admin account
@@ -253,33 +292,77 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 							}
 						}*/
 				}
-				_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
+				_, _, err := h.slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
 				if err != nil {
 					log.Println(err)
 				}
 
 			}
 		}
-
 	case slack.InteractionTypeShortcut:
 		log.Printf("Got shortcut: %s", callback.CallbackID)
 		if callback.CallbackID == CSPUpdateStatusPage {
-			var err error
-			globalChannelHistory, err = getChannelHistory()
-			if err != nil {
-				log.Println(err)
-			}
-			globalUpdates, globalPinnedUpdates, err = buildStatusPage()
-			if err != nil {
-				log.Println(err)
-			}
+			h.shouldUpdate = true
 		}
-	case slack.InteractionTypeViewSubmission:
-		// See https://api.slack.com/apis/connections/socket-implement#modal
-	case slack.InteractionTypeDialogSubmission:
 	default:
-
+		log.Println("no handler for event of given type")
 	}
 
-	slackSocket.Ack(*h.evt.Request, payload)
+	h.slackSocket.Ack(*h.evt.Request, payload)
+}
+
+// Nuke the old slices and re-build them
+func (app *CSPSlack) BuildStatusPage() (err error) {
+	log.Println("Building Status Page...")
+	app.page.updates = make([]StatusUpdate, 0)
+	app.page.pinnedUpdates = make([]StatusUpdate, 0)
+	for _, message := range app.channelHistory {
+		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
+		// Ignore messages that don't mention us. Also, ignore messages that
+		// mention us but are empty!
+		if !strings.Contains(message.Text, botID) || message.Text == botID {
+			continue
+		}
+
+		msgUser, err := app.slackSocket.GetUserInfo(message.User)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		realName := msgUser.RealName
+		var update StatusUpdate
+		update.Text = strings.Replace(message.Text, botID, "", -1)
+		update.SentBy = realName
+		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
+		update.BackgroundClass = ""
+		update.IconFilename = ""
+
+		for _, reaction := range message.Reactions {
+			// Only take action on our reactions
+			if botReaction := stringInSlice(reaction.Users, config.SlackBotID); !botReaction {
+				continue
+			}
+
+			// Use the first reaction sent by the bot that we find
+			switch reaction.Name {
+			case config.StatusOKEmoji:
+				update.BackgroundClass = "list-group-item-success"
+				update.IconFilename = "checkmark.svg"
+			case config.StatusWarnEmoji:
+				update.BackgroundClass = "list-group-item-warning"
+				update.IconFilename = "warning.svg"
+			case config.StatusErrorEmoji:
+				update.BackgroundClass = "list-group-item-danger"
+				update.IconFilename = "error.svg"
+			}
+
+		}
+		if len(message.PinnedTo) > 0 {
+			app.page.pinnedUpdates = append(app.page.pinnedUpdates, update)
+		} else {
+			app.page.updates = append(app.page.updates, update)
+		}
+	}
+
+	return nil
 }
