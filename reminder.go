@@ -72,7 +72,7 @@ func (app *CSPSlack) SendReminders() error {
 	}
 
 	// Send summary message
-	summaryMessage := fmt.Sprintln("<!here> Hello, Admins.\nThe following messages have been pined for >1 day.")
+	summaryMessage := fmt.Sprintln("<!here> Hello, Admins.\nThe following messages are currently pinned.")
 	for _, m := range pinnedMessageLinks {
 		var parsedStatus string
 		if m.status == "" {

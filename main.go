@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 )
 
 type Config struct {
@@ -33,6 +34,8 @@ type Config struct {
 	NominalMessage string
 	NominalSentBy  string
 	HelpMessage    string
+
+	ReminderSchedule string
 }
 
 // Useful global variables
@@ -68,35 +71,46 @@ func init() {
 	config.NominalSentBy = os.Getenv("CSP_NOMINAL_SENT_BY")
 	config.HelpMessage = os.Getenv("CSP_HELP_LINK")
 
-	pinReminders := flag.Bool("send-reminders", false, "Check for pinned items and send a reminder if it's been longer than a day.")
-	flag.Parse()
-
-	if *pinReminders {
-		csp, err := NewCSPSlack()
-		if err != nil {
-			log.Fatalf("Could not set up new CSPSlack service. %s", err)
-		}
-		err = csp.SendReminders()
-		os.Exit(0)
-	}
+	config.ReminderSchedule = os.Getenv("CSP_REMINDER_SCHEDULE")
 }
 
 func main() {
+	useSlack := flag.Bool("slack", true, "Launch an instance of CSP to connect to Slack")
+
+	pinReminders := flag.Bool("send-reminders", false, "Check for pinned items and send a reminder if it's been longer than a day.")
+	flag.Parse()
+
 	var csp CSPService
-	var err error
-	cspSlack, err := NewCSPSlack()
-	csp = &cspSlack
-	if err != nil {
-		log.Fatalf("Could not set up new CSPSlack service. %s", err)
+
+	if *useSlack {
+		cspSlack, err := NewCSPSlack()
+		csp = &cspSlack
+		if err != nil {
+			log.Fatalf("Could not set up new CSPSlack service. %s", err)
+		}
 	}
-	go csp.Run() // Start the Slack Socket
 
-	app := gin.Default()
-	app.LoadHTMLGlob("templates/*")
-	app.Static("/static", "./static")
+	if *pinReminders {
+		log.Printf("Setting up reminders. Schedule is %s\n", config.ReminderSchedule)
+		c := cron.New()
+		c.AddFunc(config.ReminderSchedule, func() {
+			log.Println("CHOM")
+			err := csp.SendReminders()
+			if err != nil {
+				log.Printf("Cronjob returned error: %s\n", err)
+			}
+		})
+		c.Start()
+	}
 
-	app.GET("/", csp.StatusPage)
-	app.GET("/health", health)
+	go csp.Run()
 
-	_ = app.Run()
+	web := gin.Default()
+	web.LoadHTMLGlob("templates/*")
+	web.Static("/static", "./static")
+
+	web.GET("/", csp.StatusPage)
+	web.GET("/health", health)
+
+	_ = web.Run()
 }

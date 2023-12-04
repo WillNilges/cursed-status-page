@@ -117,6 +117,7 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 	return nil
 }
 
+// Pass-Thru the interface to the Page object
 func (app *CSPSlack) StatusPage(gin *gin.Context) {
 	app.page.statusPage(gin)
 }
