@@ -25,11 +25,7 @@ COPY --from=builder /build/cursed-status-page ./
 COPY static/. ./static/
 COPY templates/. ./templates/
 
-# Set up cron to send pin reminders daily
-COPY crontab /etc/cron.d/send-reminders
-RUN chmod 0644 /etc/cron.d/send-reminders; crontab /etc/cron.d/send-reminders; touch /var/log/cron.log
-
 RUN apk add --no-cache tzdata
 
-ENTRYPOINT crond && ./cursed-status-page
+ENTRYPOINT ./cursed-status-page
 
