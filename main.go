@@ -82,7 +82,10 @@ func init() {
 }
 
 func main() {
-	csp, err := NewCSPSlack()
+	var csp CSPService
+	var err error
+	cspSlack, err := NewCSPSlack()
+	csp = &cspSlack
 	if err != nil {
 		log.Fatalf("Could not set up new CSPSlack service. %s", err)
 	}
@@ -92,7 +95,7 @@ func main() {
 	app.LoadHTMLGlob("templates/*")
 	app.Static("/static", "./static")
 
-	app.GET("/", csp.page.statusPage)
+	app.GET("/", csp.StatusPage)
 	app.GET("/health", health)
 
 	_ = app.Run()

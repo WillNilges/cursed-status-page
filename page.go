@@ -15,19 +15,10 @@ type StatusUpdate struct {
 	IconFilename    string
 }
 
-// Nothing technically implements this interface, apparently. Go structs are
-// an S-Tier Shindogu.
-type CSPService interface {
-	BuildStatusPage() error
-	Run()
-	SendReminders() error
-}
-
 type CSPPage struct {
 	updates []StatusUpdate
 	pinnedUpdates []StatusUpdate
 }
-
 
 func (page *CSPPage) statusPage(c *gin.Context) {
 	c.HTML(
