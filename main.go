@@ -7,8 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/socketmode"
+	"github.com/robfig/cron/v3"
 )
 
 type Config struct {
@@ -16,13 +15,13 @@ type Config struct {
 	LogoURL    string
 	FaviconURL string
 
-	SlackTeamID          string
-	SlackAccessToken     string
-	SlackAppToken        string
-	SlackStatusChannelID string
+	SlackTeamID           string
+	SlackAccessToken      string
+	SlackAppToken         string
+	SlackStatusChannelID  string
 	SlackForwardChannelID string
-	SlackBotID           string
-	SlackTruncation      string
+	SlackBotID            string
+	SlackTruncation       string
 
 	StatusNeutralColor string
 	StatusOKColor      string
@@ -35,25 +34,12 @@ type Config struct {
 	NominalMessage string
 	NominalSentBy  string
 	HelpMessage    string
+
+	ReminderSchedule string
 }
 
-type StatusUpdate struct {
-	Text       string
-	SentBy     string
-	TimeStamp  string
-	BackgroundClass string
-	IconFilename string
-}
-
+// Useful global variables
 var config Config
-
-var globalChannelHistory []slack.Message
-
-var globalUpdates []StatusUpdate
-var globalPinnedUpdates []StatusUpdate
-
-var slackAPI *slack.Client
-var slackSocket *socketmode.Client
 
 func init() {
 	// Load environment variables one way or another
@@ -85,48 +71,46 @@ func init() {
 	config.NominalSentBy = os.Getenv("CSP_NOMINAL_SENT_BY")
 	config.HelpMessage = os.Getenv("CSP_HELP_LINK")
 
-	pinReminders := flag.Bool("send-reminders", false, "Check for pinned items and send a reminder if it's been longer than a day.")
-
-	flag.Parse()
-
-	slackAPI := slack.New(config.SlackAccessToken, slack.OptionAppLevelToken(config.SlackAppToken))
-	slackSocket = socketmode.New(slackAPI,
-		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
-	)
-
-	// Get the channel history
-	globalChannelHistory, err = getChannelHistory()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
-	// Get some deets we'll need from the slack API
-	authTestResponse, err := slackAPI.AuthTest()
-	config.SlackBotID = authTestResponse.UserID
-
-	// Send out reminders about pinned messages.
-	if *pinReminders {
-		sendReminders()
-		os.Exit(0)
-	} 
-
-	// Initialize the actual data we need for the status page
-	globalUpdates, globalPinnedUpdates, err = buildStatusPage()
-	if err != nil {
-		log.Fatal(err)
-	}
+	config.ReminderSchedule = os.Getenv("CSP_REMINDER_SCHEDULE")
 }
 
 func main() {
-	go runSocket() // Start the Slack Socket
+	useSlack := flag.Bool("slack", true, "Launch an instance of CSP to connect to Slack")
 
-	app := gin.Default()
-	app.LoadHTMLGlob("templates/*")
-	app.Static("/static", "./static")
+	pinReminders := flag.Bool("send-reminders", false, "Check for pinned items and send a reminder if it's been longer than a day.")
+	flag.Parse()
 
-	app.GET("/", statusPage)
-	app.GET("/health", health)
+	var csp CSPService
 
-	_ = app.Run()
+	if *useSlack {
+		cspSlack, err := NewCSPSlack()
+		csp = &cspSlack
+		if err != nil {
+			log.Fatalf("Could not set up new CSPSlack service. %s", err)
+		}
+	}
+
+	if *pinReminders {
+		log.Printf("Setting up reminders. Schedule is %s\n", config.ReminderSchedule)
+		c := cron.New()
+		c.AddFunc(config.ReminderSchedule, func() {
+			log.Println("CHOM")
+			err := csp.SendReminders()
+			if err != nil {
+				log.Printf("Cronjob returned error: %s\n", err)
+			}
+		})
+		c.Start()
+	}
+
+	go csp.Run()
+
+	web := gin.Default()
+	web.LoadHTMLGlob("templates/*")
+	web.Static("/static", "./static")
+
+	web.GET("/", csp.StatusPage)
+	web.GET("/health", health)
+
+	_ = web.Run()
 }
