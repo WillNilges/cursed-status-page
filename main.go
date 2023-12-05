@@ -94,7 +94,6 @@ func main() {
 		log.Printf("Setting up reminders. Schedule is %s\n", config.ReminderSchedule)
 		c := cron.New()
 		c.AddFunc(config.ReminderSchedule, func() {
-			log.Println("CHOM")
 			err := csp.SendReminders()
 			if err != nil {
 				log.Printf("Cronjob returned error: %s\n", err)
