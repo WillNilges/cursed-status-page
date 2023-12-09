@@ -4,12 +4,34 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/slack-go/slack"
 )
+
+
+func slackMrkdwnToHTML(text string) string {
+	// Convert bold (*text*) to <strong>text</strong>
+	text = regexp.MustCompile(`\*([^*]+)\*`).ReplaceAllString(text, "<strong>$1</strong>")
+
+	// Convert italic (_text_) to <em>text</em>
+	text = regexp.MustCompile(`_([^_]+)_`).ReplaceAllString(text, "<em>$1</em>")
+
+	// Convert code (`code`) to <code>code</code>
+	text = regexp.MustCompile("`([^`]+)`").ReplaceAllString(text, "<code>$1</code>")
+
+	// Convert links (<http://example.com|Example>) to <a href="http://example.com">Example</a>
+	re := regexp.MustCompile(`<([^|]+)\|([^>]+)>`)
+	text = re.ReplaceAllString(text, `<a href="$1">$2</a>`)
+
+	// Convert line breaks (\n) to <br>
+	text = strings.ReplaceAll(text, "\n", "<br>")
+
+	return text
+}
 
 // ResolveChannelName retrieves the human-readable channel name from the channel ID.
 func (app *CSPSlack) resolveChannelName(channelID string) (string, error) {
