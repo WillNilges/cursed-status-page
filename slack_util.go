@@ -11,7 +11,6 @@ import (
 	"github.com/slack-go/slack"
 )
 
-
 // ResolveChannelName retrieves the human-readable channel name from the channel ID.
 func (app *CSPSlack) resolveChannelName(channelID string) (string, error) {
 	info, err := app.slackSocket.GetConversationInfo(&slack.GetConversationInfoInput{
@@ -152,7 +151,7 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 }
 
 // Function to build the message the bot sends in response to being pinged with
-// a new status update. 
+// a new status update.
 func CreateUpdateResponseMsg(channelName string) (blocks []slack.Block) {
 	blocks = []slack.Block{
 		slack.NewSectionBlock(
@@ -231,4 +230,3 @@ func GetPinnedMessageStatus(reactions []slack.ItemReaction) string {
 	}
 	return ""
 }
-
