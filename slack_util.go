@@ -21,9 +21,9 @@ func parseSlackMrkdwnLinks(message string) string {
 		// If the link has a label, use it as the anchor text, otherwise use the URL
 		parts := strings.Split(match[1:len(match)-1], "|")
 		if len(parts) == 2 {
-			return fmt.Sprintf(`<a href="%s">%s</a>`, parts[0], parts[1])
+			return fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, parts[0], parts[1])
 		} else {
-			return fmt.Sprintf(`<a href="%s">%s</a>`, parts[0], parts[0])
+			return fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, parts[0], parts[0])
 		}
 	})
 
