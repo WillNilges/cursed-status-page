@@ -1,9 +1,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
