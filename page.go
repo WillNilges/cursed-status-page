@@ -9,6 +9,7 @@ import (
 
 type StatusUpdate struct {
 	Text            string
+	HTML            template.HTML
 	SentBy          string
 	TimeStamp       string
 	BackgroundClass string
@@ -16,7 +17,7 @@ type StatusUpdate struct {
 }
 
 type CSPPage struct {
-	updates []StatusUpdate
+	updates       []StatusUpdate
 	pinnedUpdates []StatusUpdate
 }
 

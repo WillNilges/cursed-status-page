@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"strings"
@@ -27,13 +28,13 @@ const (
 )
 
 type CSPSlack struct {
-	slackAPI *slack.Client
+	slackAPI    *slack.Client
 	slackSocket *socketmode.Client
 
 	channelHistory []slack.Message
 
 	shouldUpdate bool
-	
+
 	page CSPPage
 }
 
@@ -82,6 +83,9 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		realName := msgUser.RealName
 		var update StatusUpdate
 		update.Text = strings.Replace(message.Text, botID, "", -1)
+		fmt.Println(update.Text)
+		update.HTML = template.HTML(parseSlackMrkdwnLinks(update.Text))
+		fmt.Println(update.HTML)
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 		update.BackgroundClass = ""
@@ -112,6 +116,7 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		} else {
 			app.page.updates = append(app.page.updates, update)
 		}
+
 	}
 
 	return nil
@@ -134,7 +139,7 @@ func (app *CSPSlack) Run() {
 			case socketmode.EventTypeConnected:
 				fmt.Println("Connected to Slack with Socket Mode.")
 			case socketmode.EventTypeEventsAPI:
-				e.handleEventAPIEvent()	
+				e.handleEventAPIEvent()
 			case socketmode.EventTypeInteractive:
 				e.handleInteractiveEvent()
 
@@ -237,7 +242,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 				log.Printf("Could not resolve channel name: %s\n", err)
 				break
 			}
-			blocks := CreateUpdateResponseMsg(channelName) 
+			blocks := CreateUpdateResponseMsg(channelName)
 			//FIXME (willnilges): Seems like slack has some kind of limitation with being unable to post ephemeral messages to threads and then
 			// broadcast them to channels. So for now this is going to be non-ephemeral.
 
@@ -261,7 +266,7 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 	callback, ok := h.evt.Data.(slack.InteractionCallback)
 	if !ok {
 		fmt.Printf("Ignored %+v\n", h.evt)
-		return	
+		return
 	}
 
 	var payload interface{}
@@ -372,4 +377,3 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 
 	h.slackSocket.Ack(*h.evt.Request, payload)
 }
-

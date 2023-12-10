@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/slack-go/slack"
 )
-
 
 // ResolveChannelName retrieves the human-readable channel name from the channel ID.
 func (app *CSPSlack) resolveChannelName(channelID string) (string, error) {
@@ -123,6 +123,24 @@ func (app *CSPSlack) clearReactions(timestamp string, focusReactions []string) e
 
 // Slack utility functions. Mostly just for data parsing. Don't actually reqire Slack
 // client, but operate on Slack resources.
+func parseSlackMrkdwnLinks(message string) string {
+	// Regular expression to match links with optional labels
+	linkRegex := regexp.MustCompile(`<([^|>]+)\|([^>]+)>|<([^>]+)>`)
+
+	// Replace links with HTML-formatted links
+	result := linkRegex.ReplaceAllStringFunc(message, func(match string) string {
+		// If the link has a label, use it as the anchor text, otherwise use the URL
+		parts := strings.Split(match[1:len(match)-1], "|")
+		if len(parts) == 2 {
+			return fmt.Sprintf(`<a href="%s">%s</a>`, parts[0], parts[1])
+		} else {
+			return fmt.Sprintf(`<a href="%s">%s</a>`, parts[0], parts[0])
+		}
+	})
+
+	return result
+}
+
 
 // Converts the timestamp from a message into a human-readable format.
 func slackTSToHumanTime(slackTimestamp string) (hrt string) {
@@ -152,7 +170,7 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 }
 
 // Function to build the message the bot sends in response to being pinged with
-// a new status update. 
+// a new status update.
 func CreateUpdateResponseMsg(channelName string) (blocks []slack.Block) {
 	blocks = []slack.Block{
 		slack.NewSectionBlock(
@@ -231,4 +249,3 @@ func GetPinnedMessageStatus(reactions []slack.ItemReaction) string {
 	}
 	return ""
 }
-
