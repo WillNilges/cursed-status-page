@@ -83,9 +83,7 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		realName := msgUser.RealName
 		var update StatusUpdate
 		update.Text = strings.Replace(message.Text, botID, "", -1)
-		fmt.Println(update.Text)
 		update.HTML = template.HTML(parseSlackMrkdwnLinks(update.Text))
-		fmt.Println(update.HTML)
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 		update.BackgroundClass = ""
@@ -377,3 +375,113 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 
 	h.slackSocket.Ack(*h.evt.Request, payload)
 }
+
+// ResolveChannelName retrieves the human-readable channel name from the channel ID.
+func (app *CSPSlack) resolveChannelName(channelID string) (string, error) {
+	info, err := app.slackSocket.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID:         channelID,
+		IncludeLocale:     false,
+		IncludeNumMembers: false,
+	})
+	if err != nil {
+		return "", err
+	}
+	return info.Name, nil
+}
+
+func (app *CSPSlack) getThreadConversation(channelID string, threadTs string) (conversation []slack.Message, err error) {
+	// Get the conversation history
+	params := slack.GetConversationRepliesParameters{
+		ChannelID: channelID,
+		Timestamp: threadTs,
+	}
+	conversation, _, _, err = app.slackAPI.GetConversationReplies(&params)
+	if err != nil {
+		return conversation, err
+	}
+	return conversation, nil
+}
+
+func (app *CSPSlack) getChannelHistory() (err error) {
+	log.Println("Fetching channel history...")
+	limit, _ := strconv.Atoi(config.SlackTruncation)
+	params := slack.GetConversationHistoryParameters{
+		ChannelID: config.SlackStatusChannelID,
+		Oldest:    "0",   // Retrieve messages from the beginning of time
+		Inclusive: true,  // Include the oldest message
+		Limit:     limit, // Only get 100 messages
+	}
+
+	var history *slack.GetConversationHistoryResponse
+	history, err = app.slackSocket.GetConversationHistory(&params)
+	app.channelHistory = history.Messages
+	return err
+}
+
+func (app *CSPSlack) getSingleMessage(channelID string, oldest string) (message slack.Message, err error) {
+	log.Println("Fetching channel history...")
+	params := slack.GetConversationHistoryParameters{
+		ChannelID: channelID,
+		Oldest:    oldest,
+		Inclusive: true,
+		Limit:     1,
+	}
+
+	var history *slack.GetConversationHistoryResponse
+	history, err = app.slackSocket.GetConversationHistory(&params)
+	if err != nil {
+		return message, err
+	}
+	if len(history.Messages) == 0 {
+		return message, errors.New("No messages retrieved.")
+	}
+	return history.Messages[0], err
+}
+
+func (app *CSPSlack) isBotMentioned(timestamp string) (isMentioned bool, err error) {
+	history, err := app.slackSocket.GetConversationHistory(
+		&slack.GetConversationHistoryParameters{
+			ChannelID: config.SlackStatusChannelID,
+			Inclusive: true,
+			Latest:    timestamp,
+			Oldest:    timestamp,
+			Limit:     1,
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+	if len(history.Messages) > 0 {
+		return strings.Contains(history.Messages[0].Text, config.SlackBotID), nil
+	}
+	return false, err
+}
+
+func (app *CSPSlack) clearReactions(timestamp string, focusReactions []string) error {
+	ref := slack.ItemRef{
+		Channel:   config.SlackStatusChannelID,
+		Timestamp: timestamp,
+	}
+	reactions, err := app.slackSocket.GetReactions(ref, slack.NewGetReactionsParameters())
+	if err != nil {
+		return err
+	}
+	if focusReactions == nil {
+		for _, itemReaction := range reactions {
+			err := app.slackSocket.RemoveReaction(itemReaction.Name, ref)
+			if err != nil && err.Error() != "no_reaction" {
+				return err
+			}
+		}
+	} else {
+		// No, I am not proud of this at all.
+		for _, itemReaction := range focusReactions {
+			err := app.slackSocket.RemoveReaction(itemReaction, ref)
+			if err != nil && err.Error() != "no_reaction" {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
