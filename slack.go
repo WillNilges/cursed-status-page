@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/russross/blackfriday/v2"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 	"github.com/slack-go/slack/socketmode"
@@ -84,7 +85,7 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		realName := msgUser.RealName
 		var update StatusUpdate
 		update.Text = strings.Replace(message.Text, botID, "", -1)
-		update.HTML = template.HTML(string(bluemonday.UGCPolicy().SanitizeBytes([]byte(slackMrkdwnToHTML(update.Text)))))
+		update.HTML = template.HTML(string(bluemonday.UGCPolicy().SanitizeBytes(blackfriday.Run([]byte(update.Text)))))
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 		update.BackgroundClass = ""
