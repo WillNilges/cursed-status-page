@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/slack-go/slack"
 )
@@ -21,16 +22,13 @@ func (app *CSPSlack) SendReminders() error {
 			status := GetPinnedMessageStatus(message.Reactions)
 
 			// Don't bother if the message hasn't been up longer than a day
-			// XXX: I feel like this is an unnecessary distinction
-			/*
-				t,  err := time.Parse("2006-01-02 15:04:05 MST", ts)
-				if err == nil {
-					if time.Since(t) < 24 * time.Hour {
-						fmt.Println("Message not pinned for long enough. Ignoring.")
-						continue
-					}
+			t,  err := time.Parse("2006-01-02 15:04:05 MST", ts)
+			if err == nil {
+				if time.Since(t) < 24 * time.Hour {
+					fmt.Println("Message not pinned for long enough. Ignoring.")
+					continue
 				}
-			*/
+			}
 
 			// Optionally send individual reminders.
 			// XXX: This seems like it would be too noisy.
