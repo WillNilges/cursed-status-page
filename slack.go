@@ -189,7 +189,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			h.shouldUpdate = true
 		case *slackevents.ReactionRemovedEvent:
 			if ev.User == config.SlackBotID {
-				break
+				return	
 			}
 			reaction := ev.Reaction
 			h.slackSocket.RemoveReaction(reaction, slack.ItemRef{
@@ -202,10 +202,10 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			botMentioned, err := h.isBotMentioned(ev.Item.Timestamp)
 			if err != nil {
 				log.Println(err)
-				break
+				return
 			}
 			if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned) {
-				break
+				return
 			}
 			// If necessary, remove a conflicting reaction
 			if isRelevantReaction(reaction) {
@@ -227,20 +227,38 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 		case *slackevents.MessageEvent:
 			// If a message mentioning us gets added or deleted, then
 			// do something
-			log.Println(ev.SubType)
-			// Check if a new message got posted to the site thread
-			if (ev.Message != nil && strings.Contains(ev.Message.Text, config.SlackBotID)) || ev.SubType == "message_deleted" {
-				h.shouldUpdate = true
-			}
-		case *slackevents.AppMentionEvent:
-			h.shouldUpdate = true
+			log.Printf("Message type: %s\n", ev.SubType)
 
+			// If the message was deleted, then update the page.
+			// If LITERALLY ANYTHING ELSE happened, bail
+			switch ev.SubType {
+				case "": // continue
+				case "message_deleted":
+					h.shouldUpdate = true
+					fallthrough
+				default:
+					return
+			}
+
+			// If the bot was mentioned in this message, then we should probably
+			// re-build the page, and if not, we should bail.
+			botID := fmt.Sprintf("<@%s>", config.SlackBotID)
+			if strings.Contains(ev.Text, botID) {
+				h.shouldUpdate = true
+			} else {
+				return
+			}
+			
+			// HACK: If we're still here, it means we got mentioned, and should
+			// do something about it. We do this instead of an AppMention because
+			// there does not seem to be any way to not fire an AppMentionEvent
+			// if a message is edited
 			log.Printf("Got mentioned. Timestamp is: %s. ThreadTimestamp is: %s\n", ev.TimeStamp, ev.ThreadTimeStamp)
 
 			channelName, err := h.resolveChannelName(config.SlackForwardChannelID)
 			if err != nil {
 				log.Printf("Could not resolve channel name: %s\n", err)
-				break
+				return
 			}
 			blocks := CreateUpdateResponseMsg(channelName, ev.User)
 			//FIXME (willnilges): Seems like slack has some kind of limitation with being unable to post ephemeral messages to threads and then
@@ -258,7 +276,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			log.Println("no handler for event of given type")
 		}
 	default:
-		h.slackSocket.Debugf("unsupported Events API event received")
+		// h.slackSocket.Debugf("unsupported Events API event received")
 	}
 }
 

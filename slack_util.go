@@ -30,8 +30,7 @@ func parseSlackMrkdwnLinks(message string) string {
 	return result
 }
 
-// Converts the timestamp from a message into a human-readable format.
-func slackTSToHumanTime(slackTimestamp string) (hrt string) {
+func slackTSToTime(slackTimestamp string) (slackTime time.Time) {
 	// Convert the Slack timestamp to a Unix timestamp (float64)
 	slackUnixTimestamp, err := strconv.ParseFloat(strings.Split(slackTimestamp, ".")[0], 64)
 	if err != nil {
@@ -40,7 +39,13 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 	}
 
 	// Create a time.Time object from the Unix timestamp (assuming UTC time zone)
-	slackTime := time.Unix(int64(slackUnixTimestamp), 0)
+	slackTime = time.Unix(int64(slackUnixTimestamp), 0)
+	return slackTime
+}
+
+// Converts the timestamp from a message into a human-readable format.
+func slackTSToHumanTime(slackTimestamp string) (hrt string) {
+	slackTime := slackTSToTime(slackTimestamp)
 
 	// Convert to a specific time zone (e.g., "America/New_York")
 	location, err := time.LoadLocation("America/New_York")
