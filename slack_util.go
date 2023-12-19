@@ -59,10 +59,10 @@ func slackTSToHumanTime(slackTimestamp string) (hrt string) {
 
 // Function to build the message the bot sends in response to being pinged with
 // a new status update.
-func CreateUpdateResponseMsg(channelName string) (blocks []slack.Block) {
+func CreateUpdateResponseMsg(channelName string, user string) (blocks []slack.Block) {
 	blocks = []slack.Block{
 		slack.NewSectionBlock(
-			slack.NewTextBlockObject(slack.MarkdownType, "I see you are posting a new message to the support page. What kind of alert is this? *Warning: this alert will go live immediately!*", false, false),
+			slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("<@%s> I see you have posted a new message to the support page. What kind of alert is this? *Warning: this alert is live immediately!*", user), false, false),
 			nil,
 			nil,
 		),

@@ -242,14 +242,14 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 				log.Printf("Could not resolve channel name: %s\n", err)
 				break
 			}
-			blocks := CreateUpdateResponseMsg(channelName)
+			blocks := CreateUpdateResponseMsg(channelName, ev.User)
 			//FIXME (willnilges): Seems like slack has some kind of limitation with being unable to post ephemeral messages to threads and then
 			// broadcast them to channels. So for now this is going to be non-ephemeral.
 
 			// Post the ephemeral message
 			//_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionText("Hello!", false))
 			//_, err = slackSocket.PostEphemeral(config.SlackStatusChannelID, ev.User, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
-			_, _, err = h.slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBroadcast(), slack.MsgOptionBlocks(blocks...))
+			_, _, err = h.slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBlocks(blocks...))
 			if err != nil {
 				log.Printf("Error posting ephemeral message: %s", err)
 			}
