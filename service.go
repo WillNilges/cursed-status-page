@@ -7,6 +7,6 @@ import (
 type CSPService interface {
 	BuildStatusPage() error
 	StatusPage(gin *gin.Context)
-	SendReminders() error
+	SendReminders(now bool) error
 	Run()
 }
