@@ -357,78 +357,7 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 		for _, action := range callback.ActionCallback.BlockActions {
 			switch action.ActionID {
 			case CSPSetOK, CSPSetWarn, CSPSetError, CSPCancel:
-				log.Printf("Block Action Detected: %s\n", action.ActionID)
-				itemRef := slack.ItemRef{
-					Channel:   callback.Channel.ID,
-					Timestamp: callback.Container.ThreadTs,
-				}
-
-				selected_options := gjson.Get(string(callback.RawState), "values.options.options.selected_options").Array()
-				for i, opt := range selected_options {
-					fmt.Println(i, opt)
-
-					option := gjson.Get(opt.String(), "value").String()
-					switch option {
-					case CSPPin:
-						log.Println("Will pin message")
-
-						// Get the conversation history
-						err := h.slackSocket.AddPin(callback.Channel.ID, itemRef)
-						if err != nil {
-							log.Println(err)
-						}
-					case CSPForward:
-						log.Println("Will forward message")
-
-						messageText, err := h.getSingleMessage(callback.Channel.ID, callback.Container.ThreadTs)
-						if err != nil {
-							log.Println(err)
-							break
-						}
-						_, _, err = h.slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(messageText.Text, false))
-					}
-				}
-
-				// Clear any old reactions
-				switch action.ActionID {
-				case CSPSetOK, CSPSetWarn, CSPSetError:
-					h.clearReactions(
-						callback.Container.ThreadTs,
-						[]string{
-							config.StatusOKEmoji,
-							config.StatusWarnEmoji,
-							config.StatusErrorEmoji,
-						},
-					)
-				}
-
-				// Add the reaction we want
-				switch action.ActionID {
-				case CSPSetOK:
-					err := h.slackSocket.AddReaction(config.StatusOKEmoji, itemRef)
-					if err != nil {
-						// Handle the error
-						h.slackSocket.Debugf("Error adding reaction: %v", err)
-					}
-				case CSPSetWarn:
-					err := h.slackSocket.AddReaction(config.StatusWarnEmoji, itemRef)
-					if err != nil {
-						// Handle the error
-						h.slackSocket.Debugf("Error adding reaction: %v", err)
-					}
-				case CSPSetError:
-					err := h.slackSocket.AddReaction(config.StatusErrorEmoji, itemRef)
-					if err != nil {
-						// Handle the error
-						h.slackSocket.Debugf("Error adding reaction: %v", err)
-					}
-				case CSPCancel:
-				}
-				_, _, err := h.slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
-				if err != nil {
-					log.Println(err)
-				}
-
+				h.handlePromptInteraction(callback, action)
 			}
 		}
 	case slack.InteractionTypeShortcut:
@@ -441,6 +370,80 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 	}
 
 	h.slackSocket.Ack(*h.evt.Request, payload)
+}
+
+func (h *CSPSlackEvtHandler) handlePromptInteraction(callback slack.InteractionCallback, action *slack.BlockAction) {
+	log.Printf("Block Action Detected: %s\n", action.ActionID)
+	itemRef := slack.ItemRef{
+		Channel:   callback.Channel.ID,
+		Timestamp: callback.Container.ThreadTs,
+	}
+
+	selected_options := gjson.Get(string(callback.RawState), "values.options.options.selected_options").Array()
+	for i, opt := range selected_options {
+		fmt.Println(i, opt)
+
+		option := gjson.Get(opt.String(), "value").String()
+		switch option {
+		case CSPPin:
+			log.Println("Will pin message")
+
+			// Get the conversation history
+			err := h.slackSocket.AddPin(callback.Channel.ID, itemRef)
+			if err != nil {
+				log.Println(err)
+			}
+		case CSPForward:
+			log.Println("Will forward message")
+
+			messageText, err := h.getSingleMessage(callback.Channel.ID, callback.Container.ThreadTs)
+			if err != nil {
+				log.Println(err)
+				break
+			}
+			_, _, err = h.slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(strippedStatusUpdate, false))
+		}
+	}
+
+	// Clear any old reactions
+	switch action.ActionID {
+	case CSPSetOK, CSPSetWarn, CSPSetError:
+		h.clearReactions(
+			callback.Container.ThreadTs,
+			[]string{
+				config.StatusOKEmoji,
+				config.StatusWarnEmoji,
+				config.StatusErrorEmoji,
+			},
+		)
+	}
+
+	// Add the reaction we want
+	switch action.ActionID {
+	case CSPSetOK:
+		err := h.slackSocket.AddReaction(config.StatusOKEmoji, itemRef)
+		if err != nil {
+			// Handle the error
+			h.slackSocket.Debugf("Error adding reaction: %v", err)
+		}
+	case CSPSetWarn:
+		err := h.slackSocket.AddReaction(config.StatusWarnEmoji, itemRef)
+		if err != nil {
+			// Handle the error
+			h.slackSocket.Debugf("Error adding reaction: %v", err)
+		}
+	case CSPSetError:
+		err := h.slackSocket.AddReaction(config.StatusErrorEmoji, itemRef)
+		if err != nil {
+			// Handle the error
+			h.slackSocket.Debugf("Error adding reaction: %v", err)
+		}
+	case CSPCancel:
+	}
+	_, _, err := h.slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // Utility functions
