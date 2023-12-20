@@ -259,7 +259,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			})
 			h.shouldUpdate = true
 		case *slackevents.ReactionAddedEvent:
-			h.handleReactionAddedEvent(ev)	
+			h.handleReactionAddedEvent(ev)
 		case *slackevents.MessageEvent:
 			h.handleMessageEvent(ev)
 		default:
@@ -401,6 +401,10 @@ func (h *CSPSlackEvtHandler) handlePromptInteraction(callback slack.InteractionC
 				log.Println(err)
 				break
 			}
+
+			botID := fmt.Sprintf("<@%s>", config.SlackBotID)
+			strippedStatusUpdate := strings.Replace(messageText.Text, botID, "", -1)
+
 			_, _, err = h.slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(strippedStatusUpdate, false))
 		}
 	}
@@ -556,4 +560,3 @@ func (app *CSPSlack) clearReactions(timestamp string, focusReactions []string) e
 	}
 	return nil
 }
-
