@@ -8,12 +8,13 @@ import (
 )
 
 type ReminderInfo struct {
+	userID string
 	link   string
 	ts     string
 	status string
 }
 
-func (app *CSPSlack) SendReminders() error {
+func (app *CSPSlack) SendReminders(now bool) error {
 	fmt.Println("Sending unpin reminders...")
 	var pinnedMessageLinks []ReminderInfo
 	for _, message := range app.channelHistory {
@@ -24,32 +25,11 @@ func (app *CSPSlack) SendReminders() error {
 			// Don't bother if the message hasn't been up longer than a day
 			t,  err := time.Parse("2006-01-02 15:04:05 MST", ts)
 			if err == nil {
-				if time.Since(t) < 24 * time.Hour {
+				if time.Since(t) < 24 * time.Hour && now == false {
 					fmt.Println("Message not pinned for long enough. Ignoring.")
 					continue
 				}
 			}
-
-			// Optionally send individual reminders.
-			// XXX: This seems like it would be too noisy.
-			/*
-				reminderText := fmt.Sprintf(
-					"Hey, <@%s>, this message was posted on %s. It might be time to unpin it.",
-					message.User,
-					ts,
-				)
-			*/
-
-			/*
-				_, _, err := slackSocket.PostMessage(
-					config.SlackStatusChannelID,
-					slack.MsgOptionTS(message.Timestamp),
-					slack.MsgOptionText(reminderText, false),
-				)
-				if err != nil {
-					return err
-				}
-			*/
 
 			// Grab permalink to send final reminder message.
 			permalink, err := app.slackSocket.GetPermalink(&slack.PermalinkParameters{
@@ -59,7 +39,7 @@ func (app *CSPSlack) SendReminders() error {
 			if err != nil {
 				return err
 			}
-			pinnedMessageLinks = append(pinnedMessageLinks, ReminderInfo{permalink, ts, status})
+			pinnedMessageLinks = append(pinnedMessageLinks, ReminderInfo{message.User, permalink, ts, status})
 			fmt.Println("Found message.")
 		}
 	}
@@ -70,7 +50,7 @@ func (app *CSPSlack) SendReminders() error {
 	}
 
 	// Send summary message
-	summaryMessage := fmt.Sprintln("<!here> Hello, Admins.\nThe following messages are currently pinned.")
+	summaryMessage := fmt.Sprintln("Hello, Admins.\nThe following messages are currently pinned.")
 	for _, m := range pinnedMessageLinks {
 		var parsedStatus string
 		if m.status == "" {
@@ -78,8 +58,7 @@ func (app *CSPSlack) SendReminders() error {
 		} else {
 			parsedStatus = fmt.Sprintf(":%s:", m.status)
 		}
-
-		summaryMessage += fmt.Sprintf("%s <%s|Since %s>\n\n", parsedStatus, m.link, m.ts)
+		summaryMessage += fmt.Sprintf("%s <@%s> <%s|Since %s>\n\n", parsedStatus, m.userID, m.link, m.ts)
 	}
 
 	summaryMessage += fmt.Sprintf("It might be time to unpin them if they are no longer relevant.")

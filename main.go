@@ -76,8 +76,8 @@ func init() {
 
 func main() {
 	useSlack := flag.Bool("slack", true, "Launch an instance of CSP to connect to Slack")
-
 	pinReminders := flag.Bool("send-reminders", false, "Check for pinned items and send a reminder if it's been longer than a day.")
+	sendRemindersNow := flag.Bool("remind-now", false, "Send reminders right away.")
 	flag.Parse()
 
 	var csp CSPService
@@ -90,11 +90,19 @@ func main() {
 		}
 	}
 
+	if *sendRemindersNow {
+		err := csp.SendReminders(true)
+		if err != nil {
+			log.Printf("Could not send reminders: %s\n", err)
+		}
+		os.Exit(0)
+	}
+
 	if *pinReminders {
 		log.Printf("Setting up reminders. Schedule is %s\n", config.ReminderSchedule)
 		c := cron.New()
 		c.AddFunc(config.ReminderSchedule, func() {
-			err := csp.SendReminders()
+			err := csp.SendReminders(false)
 			if err != nil {
 				log.Printf("Cronjob returned error: %s\n", err)
 			}
