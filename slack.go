@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
@@ -127,6 +128,67 @@ func (app *CSPSlack) StatusPage(gin *gin.Context) {
 	app.page.statusPage(gin)
 }
 
+func (app *CSPSlack) SendReminders(now bool) error {
+	fmt.Println("Sending unpin reminders...")
+	var pinnedMessageLinks []ReminderInfo
+	for _, message := range app.channelHistory {
+		if len(message.PinnedTo) > 0 {
+			ts := slackTSToHumanTime(message.Timestamp)
+			status := GetPinnedMessageStatus(message.Reactions)
+
+			// Don't bother if the message hasn't been up longer than a day
+			t, err := time.Parse("2006-01-02 15:04:05 MST", ts)
+			if err == nil {
+				if time.Since(t) < 24*time.Hour && now == false {
+					fmt.Println("Message not pinned for long enough. Ignoring.")
+					continue
+				}
+			}
+
+			// Grab permalink to send final reminder message.
+			permalink, err := app.slackSocket.GetPermalink(&slack.PermalinkParameters{
+				Channel: config.SlackStatusChannelID,
+				Ts:      message.Timestamp,
+			})
+			if err != nil {
+				return err
+			}
+			pinnedMessageLinks = append(pinnedMessageLinks, ReminderInfo{message.User, permalink, ts, status})
+			fmt.Println("Found message.")
+		}
+	}
+
+	if len(pinnedMessageLinks) == 0 {
+		fmt.Println("No messages pinned.")
+		return nil
+	}
+
+	// Send summary message
+	summaryMessage := fmt.Sprintln("Hello, Admins.\nThe following messages are currently pinned.")
+	for _, m := range pinnedMessageLinks {
+		var parsedStatus string
+		if m.status == "" {
+			parsedStatus = "•"
+		} else {
+			parsedStatus = fmt.Sprintf(":%s:", m.status)
+		}
+		summaryMessage += fmt.Sprintf("%s <@%s> <%s|Since %s>\n\n", parsedStatus, m.userID, m.link, m.ts)
+	}
+
+	summaryMessage += fmt.Sprintf("It might be time to unpin them if they are no longer relevant.")
+
+	_, _, err := app.slackSocket.PostMessage(
+		config.SlackStatusChannelID,
+		slack.MsgOptionText(summaryMessage, false),
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("success.")
+	return nil
+}
+
 func (app *CSPSlack) Run() {
 	go func() {
 		for evt := range app.slackSocket.Events {
@@ -142,7 +204,6 @@ func (app *CSPSlack) Run() {
 				e.handleEventAPIEvent()
 			case socketmode.EventTypeInteractive:
 				e.handleInteractiveEvent()
-
 			}
 
 			// If necessary, sync our cached Slack messages
@@ -189,7 +250,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			h.shouldUpdate = true
 		case *slackevents.ReactionRemovedEvent:
 			if ev.User == config.SlackBotID {
-				return	
+				return
 			}
 			reaction := ev.Reaction
 			h.slackSocket.RemoveReaction(reaction, slack.ItemRef{
@@ -232,12 +293,12 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			// If the message was deleted, then update the page.
 			// If LITERALLY ANYTHING ELSE happened, bail
 			switch ev.SubType {
-				case "": // continue
-				case "message_deleted":
-					h.shouldUpdate = true
-					fallthrough
-				default:
-					return
+			case "": // continue
+			case "message_deleted":
+				h.shouldUpdate = true
+				fallthrough
+			default:
+				return
 			}
 
 			// If the bot was mentioned in this message, then we should probably
@@ -248,7 +309,7 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			} else {
 				return
 			}
-			
+
 			// HACK: If we're still here, it means we got mentioned, and should
 			// do something about it. We do this instead of an AppMention because
 			// there does not seem to be any way to not fire an AppMentionEvent
@@ -270,7 +331,6 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			log.Println("no handler for event of given type")
 		}
 	default:
-		// h.slackSocket.Debugf("unsupported Events API event received")
 	}
 }
 
@@ -318,11 +378,8 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 							log.Println(err)
 							break
 						}
-
 						_, _, err = h.slackSocket.PostMessage(config.SlackForwardChannelID, slack.MsgOptionText(messageText.Text, false))
-
 					}
-
 				}
 
 				// Clear any old reactions
@@ -359,17 +416,6 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 						h.slackSocket.Debugf("Error adding reaction: %v", err)
 					}
 				case CSPCancel:
-					// FIXME (willnilges): Seems like Slack won't let the bot delete a message without an admin account
-					/*
-						_, _, err := slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.ThreadTs)
-						if err != nil {
-							log.Println(err)
-
-							_, _, err := slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(callback.Container.ThreadTs), slack.MsgOptionBroadcast(), slack.MsgOptionText("OK. Please remember to delete your message! I can't do it for you :(", false))
-							if err != nil {
-								log.Printf("Error posting ephemeral message: %s", err)
-							}
-						}*/
 				}
 				_, _, err := h.slackSocket.DeleteMessage(config.SlackStatusChannelID, callback.Container.MessageTs)
 				if err != nil {
@@ -389,6 +435,8 @@ func (h *CSPSlackEvtHandler) handleInteractiveEvent() {
 
 	h.slackSocket.Ack(*h.evt.Request, payload)
 }
+
+// Utility functions
 
 // ResolveChannelName retrieves the human-readable channel name from the channel ID.
 func (app *CSPSlack) resolveChannelName(channelID string) (string, error) {
@@ -498,3 +546,4 @@ func (app *CSPSlack) clearReactions(timestamp string, focusReactions []string) e
 	}
 	return nil
 }
+

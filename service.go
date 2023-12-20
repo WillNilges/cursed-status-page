@@ -10,3 +10,10 @@ type CSPService interface {
 	SendReminders(now bool) error
 	Run()
 }
+
+type ReminderInfo struct {
+	userID string
+	link   string
+	ts     string
+	status string
+}
