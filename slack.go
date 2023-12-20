@@ -259,78 +259,85 @@ func (h *CSPSlackEvtHandler) handleEventAPIEvent() {
 			})
 			h.shouldUpdate = true
 		case *slackevents.ReactionAddedEvent:
-			reaction := ev.Reaction
-			botMentioned, err := h.isBotMentioned(ev.Item.Timestamp)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned) {
-				return
-			}
-			// If necessary, remove a conflicting reaction
-			if isRelevantReaction(reaction) {
-				h.clearReactions(
-					ev.Item.Timestamp,
-					[]string{
-						config.StatusOKEmoji,
-						config.StatusWarnEmoji,
-						config.StatusErrorEmoji,
-					},
-				)
-			}
-			// Mirror the reaction on the message
-			h.slackSocket.AddReaction(reaction, slack.NewRefToMessage(
-				config.SlackStatusChannelID,
-				ev.Item.Timestamp,
-			))
-			h.shouldUpdate = true
+			h.handleReactionAddedEvent(ev)	
 		case *slackevents.MessageEvent:
-			// If a message mentioning us gets added or deleted, then
-			// do something
-			log.Printf("Message type: %s\n", ev.SubType)
-
-			// If the message was deleted, then update the page.
-			// If LITERALLY ANYTHING ELSE happened, bail
-			switch ev.SubType {
-			case "": // continue
-			case "message_deleted":
-				h.shouldUpdate = true
-				fallthrough
-			default:
-				return
-			}
-
-			// If the bot was mentioned in this message, then we should probably
-			// re-build the page, and if not, we should bail.
-			botID := fmt.Sprintf("<@%s>", config.SlackBotID)
-			if strings.Contains(ev.Text, botID) {
-				h.shouldUpdate = true
-			} else {
-				return
-			}
-
-			// HACK: If we're still here, it means we got mentioned, and should
-			// do something about it. We do this instead of an AppMention because
-			// there does not seem to be any way to not fire an AppMentionEvent
-			// if a message is edited
-			log.Printf("Got mentioned. Timestamp is: %s. ThreadTimestamp is: %s\n", ev.TimeStamp, ev.ThreadTimeStamp)
-
-			channelName, err := h.resolveChannelName(config.SlackForwardChannelID)
-			if err != nil {
-				log.Printf("Could not resolve channel name: %s\n", err)
-				return
-			}
-			blocks := CreateUpdateResponseMsg(channelName, ev.User)
-			_, _, err = h.slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBlocks(blocks...))
-			if err != nil {
-				log.Printf("Error posting ephemeral message: %s", err)
-			}
-
+			h.handleMessageEvent(ev)
 		default:
 			log.Println("no handler for event of given type")
 		}
 	default:
+	}
+}
+
+func (h *CSPSlackEvtHandler) handleReactionAddedEvent(ev *slackevents.ReactionAddedEvent) {
+	reaction := ev.Reaction
+	botMentioned, err := h.isBotMentioned(ev.Item.Timestamp)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if ev.User == config.SlackBotID || !isRelevantReaction(reaction) || (!botMentioned) {
+		return
+	}
+	// If necessary, remove a conflicting reaction
+	if isRelevantReaction(reaction) {
+		h.clearReactions(
+			ev.Item.Timestamp,
+			[]string{
+				config.StatusOKEmoji,
+				config.StatusWarnEmoji,
+				config.StatusErrorEmoji,
+			},
+		)
+	}
+	// Mirror the reaction on the message
+	h.slackSocket.AddReaction(reaction, slack.NewRefToMessage(
+		config.SlackStatusChannelID,
+		ev.Item.Timestamp,
+	))
+	h.shouldUpdate = true
+}
+
+func (h *CSPSlackEvtHandler) handleMessageEvent(ev *slackevents.MessageEvent) {
+	// If a message mentioning us gets added or deleted, then
+	// do something
+	log.Printf("Message type: %s\n", ev.SubType)
+
+	// If the message was deleted, then update the page.
+	// If LITERALLY ANYTHING ELSE happened, bail
+	switch ev.SubType {
+	case "": // continue
+	case "message_deleted":
+		h.shouldUpdate = true
+		fallthrough
+	default:
+		return
+	}
+
+	// If the bot was mentioned in this message, then we should probably
+	// re-build the page, and if not, we should bail.
+	botID := fmt.Sprintf("<@%s>", config.SlackBotID)
+	if strings.Contains(ev.Text, botID) {
+		h.shouldUpdate = true
+	} else {
+		return
+	}
+
+	// HACK: If we're still here, it means we got mentioned, and should
+	// do something about it. We do this instead of an AppMention because
+	// there does not seem to be any way to not fire an AppMentionEvent
+	// if a message is edited
+	log.Printf("Got mentioned. Timestamp is: %s. ThreadTimestamp is: %s\n", ev.TimeStamp, ev.ThreadTimeStamp)
+
+	channelName, err := h.resolveChannelName(config.SlackForwardChannelID)
+	if err != nil {
+		log.Printf("Could not resolve channel name: %s\n", err)
+		return
+	}
+	blocks := CreateUpdateResponseMsg(channelName, ev.User)
+	_, _, err = h.slackSocket.PostMessage(config.SlackStatusChannelID, slack.MsgOptionTS(ev.TimeStamp), slack.MsgOptionBlocks(blocks...))
+	if err != nil {
+		log.Printf("Error posting ephemeral message: %s", err)
 	}
 }
 
