@@ -8,7 +8,6 @@ import (
 )
 
 type StatusUpdate struct {
-	Text            string
 	HTML            template.HTML
 	SentBy          string
 	TimeStamp       string
