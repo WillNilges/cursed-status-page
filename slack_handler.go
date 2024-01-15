@@ -11,7 +11,6 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-
 type CSPSlackEvtHandler struct {
 	*CSPSlack
 	evt socketmode.Event
@@ -94,6 +93,8 @@ func (h *CSPSlackEvtHandler) handleMessageEvent(ev *slackevents.MessageEvent) {
 	// If LITERALLY ANYTHING ELSE happened, bail
 	switch ev.SubType {
 	case "": // continue
+	case "message_changed":
+		fallthrough
 	case "message_deleted":
 		h.shouldUpdate = true
 		fallthrough
@@ -236,4 +237,3 @@ func (h *CSPSlackEvtHandler) handlePromptInteraction(callback slack.InteractionC
 		log.Println(err)
 	}
 }
-

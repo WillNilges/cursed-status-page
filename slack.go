@@ -13,6 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/socketmode"
+
+	"github.com/gomarkdown/markdown"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 const (
@@ -84,7 +87,14 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		realName := msgUser.RealName
 		var update StatusUpdate
 		update.Text = strings.Replace(message.Text, botID, "", -1)
-		update.HTML = template.HTML(parseSlackMrkdwnLinks(update.Text))
+
+		// Disgusting dependency chain to parse Mrkdwn to HTML
+		//linked := parseSlackMrkdwnLinks(update.Text)
+		md := mrkdwnToMarkdown(update.Text)
+		maybeUnsafeHTML := markdown.ToHTML([]byte(md), nil, nil)
+		html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
+		update.HTML = template.HTML(html)
+
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 		update.BackgroundClass = ""

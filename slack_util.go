@@ -30,6 +30,38 @@ func parseSlackMrkdwnLinks(message string) string {
 	return result
 }
 
+// REALLY SHITTY parser from ChatGPT. I spent some time fucking around with the
+// Blocks and have concluded that writing a parser for that shit is a whole other
+// project in and of itself. Maybe someday. For now, my shit will probably be
+// vulnerable to regex-based attacks.
+func mrkdwnToMarkdown(input string) string {
+	// Handle bold text
+	boldRegex := regexp.MustCompile(`\*(.*?)\*`)
+	input = boldRegex.ReplaceAllString(input, "**$1**")
+
+	// Handle italic text
+	italicRegex := regexp.MustCompile(`_(.*?)_`)
+	input = italicRegex.ReplaceAllString(input, "*$1*")
+
+	// Handle strikethrough text
+	strikeRegex := regexp.MustCompile(`~(.*?)~`)
+	input = strikeRegex.ReplaceAllString(input, "~~$1~~")
+
+	// Handle code blocks
+	codeRegex := regexp.MustCompile("`([^`]+)`")
+	input = codeRegex.ReplaceAllString(input, "`$1`")
+
+	// Handle links with labels
+	linkWithLabelRegex := regexp.MustCompile(`<([^|]+)\|([^>]+)>`)
+	input = linkWithLabelRegex.ReplaceAllString(input, "[$2]($1)")
+
+	// Handle links without labels
+	linkWithoutLabelRegex := regexp.MustCompile(`<([^>]+)>`)
+	input = linkWithoutLabelRegex.ReplaceAllString(input, "[$1]($1)")
+
+	return input
+}
+
 func slackTSToTime(slackTimestamp string) (slackTime time.Time) {
 	// Convert the Slack timestamp to a Unix timestamp (float64)
 	slackUnixTimestamp, err := strconv.ParseFloat(strings.Split(slackTimestamp, ".")[0], 64)
