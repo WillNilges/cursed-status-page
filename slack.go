@@ -86,11 +86,10 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		}
 		realName := msgUser.RealName
 		var update StatusUpdate
-		update.Text = strings.Replace(message.Text, botID, "", -1)
 
 		// Disgusting dependency chain to parse Mrkdwn to HTML
-		//linked := parseSlackMrkdwnLinks(update.Text)
-		md := mrkdwnToMarkdown(update.Text)
+		noBots := strings.Replace(message.Text, botID, "", -1)
+		md := mrkdwnToMarkdown(noBots)
 		maybeUnsafeHTML := markdown.ToHTML([]byte(md), nil, nil)
 		html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
 		update.HTML = template.HTML(html)
