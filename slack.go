@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -89,7 +90,11 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 
 		// Disgusting dependency chain to parse Mrkdwn to HTML
 		noBots := strings.Replace(message.Text, botID, "", -1)
-		md := mrkdwnToMarkdown(noBots)
+		humanifiedChannels, err := app.slackChannelLinksToMarkdown(noBots)
+		if err != nil {
+			return err
+		}
+		md := mrkdwnToMarkdown(humanifiedChannels)
 		maybeUnsafeHTML := markdown.ToHTML([]byte(md), nil, nil)
 		html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
 		update.HTML = template.HTML(html)
@@ -234,6 +239,31 @@ func (app *CSPSlack) Run() {
 
 // Utility functions
 
+func (app *CSPSlack) slackChannelLinksToMarkdown(input string) (string, error) {
+	linkWithoutLabelRegex := regexp.MustCompile(`<#(C[A-Z0-9]+)\|>`)
+
+	teamInfo, err := app.slackAPI.GetTeamInfo()
+	if err != nil {
+		return "", err
+	}
+	domain := teamInfo.Domain
+
+	output := linkWithoutLabelRegex.ReplaceAllStringFunc(input, func (channelID string) string {
+		channelID = channelID[2:len(channelID)-2] // Hack to trim the <# and |> off the channel
+		channelName, err := app.resolveChannelName(channelID)
+		if err != nil {
+			log.Println("Error: Did not get channel name for channel ", channelID)
+			channelName = "unknown" // FIXME: (wdn) - This is a hack.
+		}
+
+		log.Println(channelName)
+
+		return fmt.Sprintf("[#%s](https://%s.slack.com/archives/%s)", channelName, domain, channelID)
+	})
+
+	return output, nil
+}
+
 // ResolveChannelName retrieves the human-readable channel name from the channel ID.
 func (app *CSPSlack) resolveChannelName(channelID string) (string, error) {
 	info, err := app.slackSocket.GetConversationInfo(&slack.GetConversationInfoInput{
@@ -261,7 +291,7 @@ func (app *CSPSlack) getThreadConversation(channelID string, threadTs string) (c
 }
 
 func (app *CSPSlack) getChannelHistory() (err error) {
-	log.Println("Fetching channel history...")
+	log.Println("Fetching channel history from: ", config.SlackStatusChannelID)
 	limit, _ := strconv.Atoi(config.SlackTruncation)
 	params := slack.GetConversationHistoryParameters{
 		ChannelID: config.SlackStatusChannelID,
