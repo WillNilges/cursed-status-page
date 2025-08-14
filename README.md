@@ -5,7 +5,7 @@ A simple status page webserver that you control using Slack
   <img height="200px" src="https://github.com/WillNilges/cursed-status-page/assets/42927786/dae7f367-4351-4bb8-ad5a-d5008dc8ee0f" alt="Ugh">
 </p>
 
-![Static Badge](https://img.shields.io/badge/i_should_stop-writing_go-blue)
+[![GitHub go.mod Go version of a Go module](https://img.shields.io/github/go-mod/go-version/willnilges/grab.svg)](https://github.com/willnilges/grab)
 [![Docker](https://img.shields.io/badge/docker-hub-cyan)](https://hub.docker.com/repository/docker/willnilges/cursed-status-page/general)
 [![Publish Docker Image](https://github.com/WillNilges/cursed-status-page/actions/workflows/to_docker_hub.yaml/badge.svg)](https://github.com/WillNilges/cursed-status-page/actions/workflows/to_docker_hub.yaml)
 [![Deploy NYC Mesh Status Page](https://github.com/WillNilges/cursed-status-page/actions/workflows/deploy_to_nycmesh_status.yaml/badge.svg)](https://github.com/WillNilges/cursed-status-page/actions/workflows/deploy_to_nycmesh_status.yaml)
