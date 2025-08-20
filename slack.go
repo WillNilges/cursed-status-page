@@ -73,10 +73,9 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 	app.page.updates = make([]StatusUpdate, 0)
 	app.page.pinnedUpdates = make([]StatusUpdate, 0)
 	for _, message := range app.channelHistory {
-		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		// Ignore messages that don't mention us. Also, ignore messages that
 		// mention us but are empty!
-		if !strings.Contains(message.Text, botID) || message.Text == botID {
+		if !botActionablyMentioned(message.Text) {
 			continue
 		}
 
@@ -89,6 +88,7 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		var update StatusUpdate
 
 		// Disgusting dependency chain to parse Mrkdwn to HTML
+		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		noBots := strings.Replace(message.Text, botID, "", -1)
 		humanifiedChannels, err := app.slackChannelLinksToMarkdown(noBots)
 		if err != nil {
@@ -144,6 +144,11 @@ func (app *CSPSlack) SendReminders(now bool) error {
 	fmt.Println("Sending unpin reminders...")
 	var pinnedMessageLinks []ReminderInfo
 	for _, message := range app.channelHistory {
+		// Don't send reminders for messages that don't mention the bot.
+		// That way, we can still pin messages.
+		if !botActionablyMentioned(message.Text) {
+			continue
+		}
 		if len(message.PinnedTo) > 0 {
 			ts := slackTSToHumanTime(message.Timestamp)
 			status := GetPinnedMessageStatus(message.Reactions)

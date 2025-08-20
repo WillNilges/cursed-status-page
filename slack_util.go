@@ -174,3 +174,13 @@ func GetPinnedMessageStatus(reactions []slack.ItemReaction) string {
 	}
 	return ""
 }
+
+// Ignore messages that don't mention us. Also, ignore messages that
+// mention us but are empty!
+func botActionablyMentioned(message string) bool {
+	botID := fmt.Sprintf("<@%s>", config.SlackBotID)
+	if !strings.Contains(message, botID) || message == botID {
+		return false
+	}
+	return true
+}
