@@ -83,6 +83,7 @@ func main() {
 	var csp CSPService
 
 	if *useSlack {
+		log.Println("Connecting to Slack...")
 		cspSlack, err := NewCSPSlack()
 		csp = &cspSlack
 		if err != nil {

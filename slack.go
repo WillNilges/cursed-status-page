@@ -50,7 +50,7 @@ func NewCSPSlack() (app CSPSlack, err error) {
 	)
 
 	// Get the channel history
-	app.getChannelHistory()
+	err = app.getChannelHistory()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,6 +210,7 @@ func (app *CSPSlack) Run() {
 	go func() {
 		for evt := range app.slackSocket.Events {
 			e := CSPSlackEvtHandler{app, evt}
+			log.Println("Got event:", evt.Type)
 			switch evt.Type {
 			case socketmode.EventTypeConnecting:
 				fmt.Println("Connecting to Slack with Socket Mode...")
