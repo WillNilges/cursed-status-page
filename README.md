@@ -61,6 +61,25 @@ ngrok http --domain <your-domain> --host-header=rewrite localhost:8080
 
 ### Setup (Production)
 
+#### Certificates
+
+Set up your .env file and move it into `deploy/`
+
+Run the `init-letsencrypt.sh` script with the following arguments:
+
+`./init-letsencrypt.sh <domain> <email_address> real`
+
+For domain, the nginx config is set up for status.nycmesh.net.
+
+*If you need to change the domain, update the nginx config too.*
+
+Go to your webpage and assuming everything is setup correctly, you should see
+the status page running.
+
+*TODO: Document auto-updating when the app builds + pushes.*
+
+#### With Dockerfile
+
 This repo has a Dockerfile you can use
 
 Clone this repo
