@@ -24,6 +24,4 @@ services:
     restart: always
     image: willnilges/cursed-status-page:main
     env_file:
-      - .env
-
-
+      - ./.env

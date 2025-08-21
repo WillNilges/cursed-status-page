@@ -16,7 +16,7 @@ if [ -z "$2" ]; then
 fi
 
 staging=1
-if [ "$3" != "real"]; then
+if [ "$3" != "real" ]; then
   echo "Using staging. Type 'real' if this is for real."
 else
   staging=0
@@ -36,6 +36,8 @@ if [ -d "$data_path" ]; then
   fi
 fi
 
+echo "### Making sure cursed-status-page is up and running ..."
+docker compose up -d cursed-status-page
 
 if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
   echo "### Downloading recommended TLS parameters ..."
