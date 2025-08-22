@@ -23,5 +23,6 @@ services:
   cursed-status-page:
     restart: always
     image: willnilges/cursed-status-page:main
+    entrypoint: ./cursed-status-page -send-reminders
     env_file:
       - ./.env
