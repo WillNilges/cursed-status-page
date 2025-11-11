@@ -2,13 +2,23 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gomarkdown/markdown"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/slack-go/slack"
 )
+
+func MrkdwnToHTML(message string) (formattedHtml template.HTML) {
+	md := mrkdwnToMarkdown(message)
+	maybeUnsafeHTML := markdown.ToHTML([]byte(md), nil, nil)
+	html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
+	return template.HTML(html)
+}
 
 // Slack utility functions. Mostly just for data parsing. Don't actually reqire Slack
 // client, but operate on Slack resources.
@@ -58,6 +68,15 @@ func mrkdwnToMarkdown(input string) string {
 	// Handle links without labels
 	linkWithoutLabelRegex := regexp.MustCompile(`<([^>]+)>`)
 	input = linkWithoutLabelRegex.ReplaceAllString(input, "[$1]($1)")
+
+	// Slack, for some insane reason, gives us messages with < formatted as &lt;,
+	// so we need to correct that.
+	// TODO: There are probably others but I'd have to write a test suite for
+	// that. There has got to be a better way to do this.
+	lessThanRegex := regexp.MustCompile(`&lt;`)
+	input = lessThanRegex.ReplaceAllString(input, "<")
+	greaterThanRegex := regexp.MustCompile(`&gt;`)
+	input = greaterThanRegex.ReplaceAllString(input, ">")
 
 	return input
 }
