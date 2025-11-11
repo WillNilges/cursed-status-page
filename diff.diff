@@ -1,0 +1,61 @@
+diff --git a/deploy/data/nginx/app.conf b/deploy/data/nginx/app.conf
+index 4e67aeb..01ae43c 100644
+--- a/deploy/data/nginx/app.conf
++++ b/deploy/data/nginx/app.conf
+@@ -1,6 +1,6 @@
+ server {
+     listen 80;
+-    server_name status.mesh.nycmesh.net;
++    server_name status.nycmesh.net;
+     location / {
+         return 301 https://$host$request_uri;
+     }
+@@ -11,9 +11,9 @@ server {
+ 
+ server {
+     listen 443 ssl;
+-    server_name status.mesh.nycmesh.net;
+-    ssl_certificate /etc/letsencrypt/live/status.mesh.nycmesh.net/fullchain.pem;
+-    ssl_certificate_key /etc/letsencrypt/live/status.mesh.nycmesh.net/privkey.pem;
++    server_name status.nycmesh.net;
++    ssl_certificate /etc/letsencrypt/live/status.nycmesh.net/fullchain.pem;
++    ssl_certificate_key /etc/letsencrypt/live/status.nycmesh.net/privkey.pem;
+     include /etc/letsencrypt/options-ssl-nginx.conf;
+     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+     
+diff --git a/deploy/docker-compose.yml b/deploy/docker-compose.yml
+index f0fa505..fd09390 100644
+--- a/deploy/docker-compose.yml
++++ b/deploy/docker-compose.yml
+@@ -23,7 +23,6 @@ services:
+   cursed-status-page:
+     restart: always
+     image: willnilges/cursed-status-page:main
++    entrypoint: ./cursed-status-page -send-reminders
+     env_file:
+-      - .env
+-
+-
++      - ./.env
+diff --git a/deploy/init-letsencrypt.sh b/deploy/init-letsencrypt.sh
+index 3d89ce5..9132c32 100755
+--- a/deploy/init-letsencrypt.sh
++++ b/deploy/init-letsencrypt.sh
+@@ -16,7 +16,7 @@ if [ -z "$2" ]; then
+ fi
+ 
+ staging=1
+-if [ "$3" != "real"]; then
++if [ "$3" != "real" ]; then
+   echo "Using staging. Type 'real' if this is for real."
+ else
+   staging=0
+@@ -36,6 +36,8 @@ if [ -d "$data_path" ]; then
+   fi
+ fi
+ 
++echo "### Making sure cursed-status-page is up and running ..."
++docker compose up -d cursed-status-page
+ 
+ if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
+   echo "### Downloading recommended TLS parameters ..."
