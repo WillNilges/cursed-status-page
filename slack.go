@@ -94,6 +94,8 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		}
 		update.HTML = MrkdwnToHTML(humanifiedChannels)
 
+		log.Printf("Status Update: %s", update.HTML)
+
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
 		update.BackgroundClass = ""

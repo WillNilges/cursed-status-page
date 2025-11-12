@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"regexp"
 	"strconv"
@@ -16,13 +17,14 @@ import (
 func MrkdwnToHTML(message string) (formattedHtml template.HTML) {
 	md := mrkdwnToMarkdown(message)
 	maybeUnsafeHTML := markdown.ToHTML([]byte(md), nil, nil)
-	html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
+	blueMondayHtml := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
+	templatedHTML := template.HTML(blueMondayHtml)
 
 	// Slack, for some insane reason, gives us messages with < formatted as &lt;,
 	// so we need to correct that.
-	//input = html.UnescapeString(input)
+	unescapedString := html.UnescapeString(string(templatedHTML))
 
-	return template.HTML(html)
+	return template.HTML(unescapedString)
 }
 
 // Slack utility functions. Mostly just for data parsing. Don't actually reqire Slack
