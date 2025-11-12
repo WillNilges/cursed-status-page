@@ -83,8 +83,6 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		realName := msgUser.RealName
 		var update StatusUpdate
 
-		log.Printf("Received message: %s\n", message.Text)
-
 		// Disgusting dependency chain to parse Mrkdwn to HTML
 		botID := fmt.Sprintf("<@%s>", config.SlackBotID)
 		noBots := strings.Replace(message.Text, botID, "", -1)
@@ -93,8 +91,6 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 			return err
 		}
 		update.HTML = MrkdwnToHTML(humanifiedChannels)
-
-		log.Printf("Status Update: %s", update.HTML)
 
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
