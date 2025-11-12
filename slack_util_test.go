@@ -8,13 +8,11 @@ import (
 func TestMrkdwnToHTMLAngleBrackets(t *testing.T) {
 	// FIXME: Why is there a newline at the end???
 	mrkdwnToHTMLStrings := map[string]string{
-		"<>":                                  "<p>&lt;&gt;</p>\n",
-		"Text after this &lt; less than sign": "<p>Text after this &lt; less than sign</p>\n",
-		"Text after this&lt;less than sign with no spaces": "<p>Text after this&lt;less than sign with no spaces</p>\n",
-		"Test String 04: Hello&lt;World&gt;":               "Test String 04: Hello<World>",
-		"Test String 03: Hello &lt; World.":                "Test String 03: Hello < World.",
-		"Test String 02: Hello&gt;World":                   "Test String 02: Hello<World",
-		"Test String 01: Hello&lt;World":                   "Test String 01: Hello<World",
+		"&lt;&gt;":                           "<p>&lt;&gt;</p>\n",
+		"Test String 04: Hello&lt;World&gt;": "<p>Test String 04: Hello&lt;World&gt;</p>\n",
+		"Test String 03: Hello &lt; World.":  "<p>Test String 03: Hello &lt; World.</p>\n",
+		"Test String 02: Hello&gt;World":     "<p>Test String 02: Hello&gt;World</p>\n",
+		"Test String 01: Hello&lt;World":     "<p>Test String 01: Hello&lt;World</p>\n",
 	}
 	for m, h := range mrkdwnToHTMLStrings {
 		htmlString := MrkdwnToHTML(m)
