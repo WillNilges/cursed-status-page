@@ -2,13 +2,30 @@ package main
 
 import (
 	"fmt"
+	"html"
+	"html/template"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gomarkdown/markdown"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/slack-go/slack"
 )
+
+func MrkdwnToHTML(message string) (formattedHtml template.HTML) {
+	md := mrkdwnToMarkdown(message)
+	maybeUnsafeHTML := markdown.ToHTML([]byte(md), nil, nil)
+	blueMondayHtml := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
+	templatedHTML := template.HTML(blueMondayHtml)
+
+	// Slack, for some insane reason, gives us messages with < formatted as &lt;,
+	// so we need to correct that.
+	unescapedString := html.UnescapeString(string(templatedHTML))
+
+	return template.HTML(unescapedString)
+}
 
 // Slack utility functions. Mostly just for data parsing. Don't actually reqire Slack
 // client, but operate on Slack resources.

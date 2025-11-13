@@ -1,0 +1,17 @@
+name: Run Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  go_test:
+    name: Go Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      - name: Run tests
+        run: go test .

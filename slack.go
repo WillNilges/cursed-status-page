@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"log"
 	"os"
 	"regexp"
@@ -14,9 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/socketmode"
-
-	"github.com/gomarkdown/markdown"
-	"github.com/microcosm-cc/bluemonday"
 )
 
 const (
@@ -94,10 +90,7 @@ func (app *CSPSlack) BuildStatusPage() (err error) {
 		if err != nil {
 			return err
 		}
-		md := mrkdwnToMarkdown(humanifiedChannels)
-		maybeUnsafeHTML := markdown.ToHTML([]byte(md), nil, nil)
-		html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
-		update.HTML = template.HTML(html)
+		update.HTML = MrkdwnToHTML(humanifiedChannels)
 
 		update.SentBy = realName
 		update.TimeStamp = slackTSToHumanTime(message.Timestamp)
@@ -254,8 +247,8 @@ func (app *CSPSlack) slackChannelLinksToMarkdown(input string) (string, error) {
 	}
 	domain := teamInfo.Domain
 
-	output := linkWithoutLabelRegex.ReplaceAllStringFunc(input, func (channelID string) string {
-		channelID = channelID[2:len(channelID)-2] // Hack to trim the <# and |> off the channel
+	output := linkWithoutLabelRegex.ReplaceAllStringFunc(input, func(channelID string) string {
+		channelID = channelID[2 : len(channelID)-2] // Hack to trim the <# and |> off the channel
 		channelName, err := app.resolveChannelName(channelID)
 		if err != nil {
 			log.Println("Error: Did not get channel name for channel ", channelID)
