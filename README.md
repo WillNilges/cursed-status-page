@@ -102,3 +102,29 @@ docker build . --tag cursed-status-page
 docker run --rm --env-file .env -p 8080:8080 cursed-status-page
 ```
 
+### Help message configuration
+
+Keep `CSP_HELP_LINK` unquoted as shown in `.env.sample`. This works with both
+the application's godotenv loader and Docker's `--env-file` option:
+
+```dotenv
+CSP_HELP_LINK=Need help? <a href="https://nycmesh.net/support">Contact support</a>.
+```
+
+For a `.env` file read directly by godotenv, single outer quotes are also valid:
+
+```dotenv
+CSP_HELP_LINK='Need help? <a href="https://nycmesh.net/support">Contact support</a>.'
+```
+
+Use the unquoted form with Docker `--env-file`, which can preserve outer quotes
+as part of the value. Do not wrap HTML containing double-quoted attributes in
+unescaped double outer quotes: godotenv can truncate the value at the first
+attribute quote without reporting an error.
+
+The help message uses the same bluemonday safe-HTML policy as status messages.
+Normal support links and supported HTML are preserved; unsupported markup and
+unsafe attributes are filtered. This prevents an incomplete help link from
+affecting the history below it, but cannot recover text already lost while
+loading the configuration.
+

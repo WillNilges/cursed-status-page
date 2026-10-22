@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type StatusUpdate struct {
@@ -25,7 +26,7 @@ func (page *CSPPage) statusPage(c *gin.Context) {
 		http.StatusOK,
 		"index.html",
 		gin.H{
-			"HelpMessage":    template.HTML(config.HelpMessage),
+			"HelpMessage":    template.HTML(bluemonday.UGCPolicy().Sanitize(config.HelpMessage)),
 			"PinnedStatuses": page.pinnedUpdates,
 			"StatusUpdates":  page.updates,
 			"Org":            config.OrgName,
